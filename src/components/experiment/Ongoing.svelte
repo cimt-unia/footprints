@@ -18,12 +18,12 @@
 </script>
 
 <div class="fixation-cross-container">
-	<img style="width: 60vw;" src={img_url} alt="stimulus" />
+	<img class="h-full w-full object-contain" src={img_url} alt="stimulus" />
 </div>
 <div>
 	{#if start_go}
 		<div style="w-screen" bind:clientWidth={w}>
-			<Sprite {duration} {state_machine} {w} y={-60} />
+			<Sprite {duration} {state_machine} {w} y={-55} />
 		</div>
 	{:else}
 		<div class="flex container m-auto justify-center">

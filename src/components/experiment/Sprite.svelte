@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Settings } from "$lib/settings_state.js";
 	import type { MyEvents, MyStates } from "$lib/state_machine.js";
 	import { invoke } from "@tauri-apps/api/core";
 	import type { FiniteStateMachine } from "runed";
@@ -34,20 +35,28 @@
 
 	$effect(() => {
 		animation = tracker!.animate(
-			[{ right: `${props.w / 2 - 160}px` }, { right: "200px" }],
+			[{ right: `${props.w / 2 - 160}px` }, { right: "10%" }],
 			{
 				duration: props.duration.time / 4,
 				easing: "linear",
 			},
 		);
+		let animation2: Animation | undefined = undefined;
+		let animation3: Animation | undefined = undefined;
 		animation.play();
 		animation.onfinish = async () => {
 			waiting_right = true;
 			await sleep(3000);
+			if (Settings.current.sound_cue) {
+				invoke("play_sound");
+			}
 			waiting_right = false;
 			left = true;
-			const animation2 = tracker!.animate(
-				[{ left: `${props.w - 320 - 200}px` }, { left: "200px" }],
+			animation2 = tracker!.animate(
+				[
+					{ left: `${props.w - 320 - 0.1 * props.w}px` },
+					{ left: "10%" },
+				],
 				{
 					duration: props.duration.time / 2,
 					easing: "linear",
@@ -57,10 +66,13 @@
 			animation2.onfinish = async () => {
 				waiting_left = true;
 				await sleep(3000);
+				if (Settings.current.sound_cue) {
+					invoke("play_sound");
+				}
 				waiting_left = false;
 				left = false;
-				const animation3 = tracker!.animate(
-					[{ left: "200px" }, { left: `${props.w / 2 - 160}px` }],
+				animation3 = tracker!.animate(
+					[{ left: "10%" }, { left: `${props.w / 2 - 160}px` }],
 					{
 						duration: props.duration.time / 4,
 						easing: "linear",
@@ -72,6 +84,11 @@
 					props.state_machine.send("g_fin");
 				};
 			};
+		};
+		return () => {
+			animation.cancel();
+			animation2?.cancel();
+			animation3?.cancel();
 		};
 	});
 
@@ -108,11 +125,11 @@
 
 <style>
 	.waiting_right {
-		right: 200px;
+		right: 10%;
 	}
 
 	.waiting_left {
-		left: 200px;
+		left: 10%;
 	}
 
 	.scene-container {
