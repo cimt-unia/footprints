@@ -46,12 +46,13 @@
 		animation.play();
 		animation.onfinish = async () => {
 			waiting_right = true;
-			await sleep(3000);
+			await sleep(1000);
+			left = true;
+			await sleep(2000);
 			if (Settings.current.sound_cue) {
 				invoke("play_sound");
 			}
 			waiting_right = false;
-			left = true;
 			animation2 = tracker!.animate(
 				[
 					{ left: `${props.w - 320 - 0.1 * props.w}px` },
@@ -65,12 +66,13 @@
 			animation2.play();
 			animation2.onfinish = async () => {
 				waiting_left = true;
-				await sleep(3000);
+				await sleep(1000);
+				left = false;
+				await sleep(2000);
 				if (Settings.current.sound_cue) {
 					invoke("play_sound");
 				}
 				waiting_left = false;
-				left = false;
 				animation3 = tracker!.animate(
 					[{ left: "10%" }, { left: `${props.w / 2 - 160}px` }],
 					{
@@ -108,13 +110,15 @@
 		alt="left"
 		style="absolute"
 	/>
-	<div
-		data-sevenup="{name}.png"
-		bind:this={tracker}
-		class="{left ? 'left' : ''} {waiting_left
-			? 'waiting_left'
-			: ''} {waiting_right ? 'waiting_right ' : ''} "
-	></div>
+	<div style="perspective: 500px;">
+		<div
+			data-sevenup="{name}.png"
+			bind:this={tracker}
+			class="{left ? 'left' : ''} {waiting_left
+				? 'waiting_left'
+				: ''} {waiting_right ? 'waiting_right ' : ''} "
+		></div>
+	</div>
 	<img
 		src="/sprites/Buildings/Red/Tower.png"
 		class="boundary-image end-point"
@@ -155,9 +159,9 @@
 		right: 10%;
 	}
 	.left {
-		-webkit-transform: scaleX(-1);
 		transform: scaleX(-1);
 	}
+
 	[data-sevenup] {
 		background-image: url("/sprites/Units/Blue/Lancer/Lancer_Run.png");
 		background-size: 1920px 320px;
