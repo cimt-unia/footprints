@@ -10,7 +10,7 @@
 	async function onKeyDown(e: KeyboardEvent) {
 		switch (e.key) {
 			case "Enter": {
-				if (step == 3) {
+				if (step == 4) {
 					// start exp
 					await cb();
 				} else {
@@ -27,7 +27,7 @@
 </script>
 
 <div class="flex flex-col m-auto max-w-4xl text-lg justify-between">
-	<h1 class="h1 mb-10 mt-10">Anleitung</h1>
+	<h1 class="h1 mb-10 mt-10">Versuchsbeschreibung</h1>
 	{#if step === 0}
 		<b>Willkommen zu unserem Experiment</b>
 
@@ -136,6 +136,56 @@
 			Bild hervorruft.
 		</p>
 	{:else if step === 3}
+		<h2 class="h2">Ablauf</h2>
+
+		<h4 class="h4 mt-4">Phase 1: Fixationskreuz</h4>
+		<p class="mt-4 mb-4">
+			Sie stehen in <b>der Mitte</b> der beiden Bildschirme an der
+			Tastatur. Ihnen wird für eine kurze Zeit ein Fixationskreuz gezeigt,
+			bitte konzentrieren Sie sich auf das <b>Kreuz</b>.
+		</p>
+		<h4 class="h4">Phase 2: Stimulation</h4>
+		<p class="mt-4 mb-4">
+			Ihnen wird für eine kurze Zeit das Bild dieses Durchlaufes gezeigt.
+		</p>
+		<h4 class="h4">Phase 3: Bewegung</h4>
+		<p class="mt-4">
+			Durch ein Signal, <b>auditiv und visuell</b>, wird Ihnen
+			signalisiert, dass Sie loslaufen sollen. Die
+			<b>Zielgeschwindigkeit</b>
+			wird Ihnen durch ein
+			<b>animiertes Männchen</b> vorgegeben. Die <b>Geschwindigkeit</b>
+			kann von Durchlauf zu Durchlauf <b>variieren</b>.
+		</p>
+		<p class="mt-4 mb-4">
+			Sind Sie bei einer <b>Markierung</b>, kurz vor den Bildschirmen,
+			angekommen haben Sie <b>3 Sekunden Zeit sich umzudrehen</b>. Nach
+			diesen 3 Sekunden wird Ihnen wieder durch ein <b>Audiosignal</b>,
+			sowie das Männchen,, signalisiert, dass Sie
+			<b>loslaufen</b> sollen.
+			<br />
+			Dieser Ablauf wiederholt sich <b>2 mal</b>. Bleiben Sie nach dem 2.
+			Mal in der
+			<b>Mitte</b> stehen.
+		</p>
+		<h4 class="h4">Phase 4: Bewertung</h4>
+		<p class="mt-4 mb-4">
+			Sie werden nun nach Ihrer Bewertung gefragt. Die <b>Skala</b>
+			umfasst einen Bereich von <b>1-7</b>; nutzen Sie die
+			<b>Zahlen auf der Tastatur</b>
+			zum Bewerten. Um ihre Bewertung zu <b>Bestätigen</b> drücken Sie
+			<b>Enter</b>.
+			<br />
+			Nach dem Bewerten startet der nächste Durchlauf mit <b>Phase 1</b>.
+		</p>
+	{:else if step === 4}
+		<h4 class="h4">Triggerwarnung</h4>
+		<p class="mt-4 mb-4">
+			Manche Bilder können auf manche Menschen verstörend wirken (z.B.
+			Krieg, Gewalt, Verletzungen, Nacktheit oder bei manchen Personen
+			Ängste auslösende Darstellungen).
+		</p>
+
 		<b>Bereit? Drücke Enter um das Experiment zu starten.</b>
 	{/if}
 </div>
