@@ -42,7 +42,7 @@ jobs:
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
-        uses: swatinem/rust-cache@82a92a6e8fcfee08bd294ac1077807123980323b
+        uses: swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1
         with:
           workspaces: './src-tauri -> target'
 
