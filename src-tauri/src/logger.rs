@@ -56,7 +56,7 @@ pub fn save_experiment(study: String, state: State<'_, Mutex<Logger>>, app: AppH
     }
     p.push(format!(
         "{}_{}.csv",
-        logger.subject.take().unwrap(),
+        logger.subject.as_ref().unwrap(),
         Local::now().timestamp()
     ));
     let f = File::create(p).unwrap();

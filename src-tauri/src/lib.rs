@@ -90,7 +90,12 @@ pub fn run() -> Result<()> {
 
 fn setup_managed_state(app: &AppHandle) -> Result<()> {
     let image_manager = ImageManager::init(app)?;
+    let stream_handle = rodio::OutputStreamBuilder::open_default_stream().unwrap();
     app.manage(Mutex::new(image_manager));
+    app.manage(LsLManager::new());
+    let sink = rodio::Sink::connect_new(stream_handle.mixer());
+    std::mem::forget(stream_handle);
+    app.manage(sink);
     app.manage(LsLManager::new());
     app.manage(Mutex::new(Logger::default()));
     Ok(())

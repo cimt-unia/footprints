@@ -5,10 +5,15 @@
 	import { SpeedState } from "$lib/speed_state.js";
 	import { LengthState } from "$lib/length_state.js";
 	import { Settings } from "$lib/settings_state.js";
+    import { invoke } from "@tauri-apps/api/core";
+    import { ExperimentIteration } from "$lib/state_machine.js";
 
 	let openState = $state(false);
 
-	function start_experiment() {
+	$inspect(ExperimentIteration.current);
+
+	async function start_experiment() {
+		await invoke("init_logger", { name: Settings.current.subject_name });
 		openState = true;
 	}
 </script>

@@ -10,14 +10,14 @@
 	let { running = $bindable(), state_machine }: ExperimentStateProps =
 		$props();
 	const max =
-		BaselineModState.current.duration + BaselineModState.current.jitter;
+		(BaselineModState.current.duration as number) +
+		(BaselineModState.current.jitter as number);
 	const min =
-		BaselineModState.current.duration - BaselineModState.current.jitter;
+		(BaselineModState.current.duration as number) -
+		(BaselineModState.current.jitter as number);
 	let random = Math.random() * (max - min + 1) + min;
 	async function start_experiment() {
 		baseline_debounce(state_machine, random * 1000);
-		await invoke("init_logger", { name: Settings.current.subject_name });
-
 		running = true;
 	}
 
