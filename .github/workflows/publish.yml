@@ -24,7 +24,7 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
@@ -33,16 +33,17 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev
 
       - name: setup bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
 
       - name: install Rust stable
-        uses: dtolnay/rust-toolchain@stable # Set this to dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # Set this to dtolnay/rust-toolchain@nightly
         with:
           # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          toolchain: 'stable'
 
       - name: Rust cache
-        uses: swatinem/rust-cache@v2
+        uses: swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1
         with:
           workspaces: './src-tauri -> target'
 
@@ -51,7 +52,7 @@ jobs:
 
       - name: install jq (windows only)
         if: matrix.platform == 'windows-latest' # This must match the platform value defined above.
-        uses: dcarbone/install-jq-action@v3
+        uses: dcarbone/install-jq-action@b7ef57d46ece78760b4019dbc4080a1ba2a40b45
         with:
           version: '1.7'
           force: false
@@ -65,7 +66,7 @@ jobs:
           VERSION=$(jq -r '.package.version' src-tauri/tauri.conf.json)
           echo "APP_VERSION=$VERSION" >> $GITHUB_OUTPUT
 
-      - uses: tauri-apps/tauri-action@v0
+      - uses: tauri-apps/tauri-action@51a9f1156b33df106d827c3a78f8f894946c5faa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

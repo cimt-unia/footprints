@@ -42,7 +42,7 @@
 </script>
 
 <div class="flex flex-col m-auto max-w-4xl text-lg justify-between">
-	<h1 class="h1 mb-10 mt-10">Anleitung</h1>
+	<h1 class="h1 mb-10 mt-10">Versuchsbeschreibung</h1>
 	{#if step === 0}
 		<b>Willkommen zu unserem Experiment</b>
 
