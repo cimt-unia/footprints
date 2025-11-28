@@ -1,4 +1,8 @@
 <script lang="ts">
+    import { LengthState } from "$lib/length_state.js";
+    import TestRunner from "$routes/experiment/components/TestRunner.svelte";
+    import { Modal } from "@skeletonlabs/skeleton-svelte";
+
 	interface Props {
 		cb: () => Promise<void>;
 	}
@@ -6,8 +10,12 @@
 	const { cb }: Props = $props();
 
 	let step = $state(0);
+	let test_open = $state(false);
 
 	async function onKeyDown(e: KeyboardEvent) {
+		if (test_open) {
+			return;
+		}
 		switch (e.key) {
 			case "Enter": {
 				if (step == 4) {
@@ -15,6 +23,13 @@
 					await cb();
 				} else {
 					step++;
+				}
+				break;
+			}
+			case "T":
+			case "t": {
+				if (step == 4) {
+					test_open = true;
 				}
 				break;
 			}
@@ -171,7 +186,8 @@
 		<h4 class="h4">Phase 4: Bewertung</h4>
 		<p class="mt-4 mb-4">
 			Sie werden nun nach Ihrer Bewertung gefragt. Die <b>Skala</b>
-			umfasst einen Bereich von <b>1-7</b>; nutzen Sie die
+			umfasst einen Bereich von <br /> <b>1-7</b> (1: niedrig/negativ, 7:
+			hoch/positiv); nutzen Sie die
 			<b>Zahlen auf der Tastatur</b>
 			zum Bewerten. Um ihre Bewertung zu <b>Bestätigen</b> drücken Sie
 			<b>Enter</b>.
@@ -186,8 +202,21 @@
 			Ängste auslösende Darstellungen).
 		</p>
 
-		<b>Bereit? Drücke Enter um das Experiment zu starten.</b>
+		<b>Bereit? Drücke Enter um das Experiment zu starten. Drücke T für einen Testdurchlauf.</b>
 	{/if}
 </div>
+<Modal
+	open={test_open}
+	onOpenChange={(e) => (test_open= e.open)}
+	contentBase="card bg-surface-100-900 space-y-4 shadow-xl min-w-screen min-h-screen"
+	backdropClasses="backdrop-blur-sm"
+>
+	{#snippet content()}
+		<TestRunner
+			bind:openState={test_open}
+			length={LengthState.current as number}
+		/>
+	{/snippet}
+</Modal>
 
 <svelte:window on:keydown|preventDefault={onKeyDown} />

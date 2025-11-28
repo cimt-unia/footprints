@@ -2,10 +2,10 @@ use tauri::{path::BaseDirectory, AppHandle, Manager, State};
 
 use crate::{
     image_manager::{Image, ImageManager},
-    logger::Logger,
     lsl::{LsLEvent, LsLManager},
 };
 use std::sync::Mutex;
+use rodio::Sink;
 
 #[tauri::command]
 pub fn get_image(init: bool, state: State<'_, Mutex<ImageManager>>) -> Image {
@@ -29,16 +29,12 @@ pub fn publish_lsl(
 }
 
 #[tauri::command]
-pub fn play_sound(app: AppHandle) {
+pub fn play_sound(app: AppHandle, sink: State<'_, Sink>) {
     let mut path = app
         .path()
         .resolve("resources/music/", BaseDirectory::Resource)
         .expect("music folder to be present");
-    let stream_handle = rodio::OutputStreamBuilder::open_default_stream().unwrap();
-    let sink = rodio::Sink::connect_new(stream_handle.mixer());
     path.push("start-13691.mp3");
     let file = std::fs::File::open(path).unwrap();
     sink.append(rodio::Decoder::try_from(file).unwrap());
-
-    sink.sleep_until_end();
 }

@@ -13,7 +13,6 @@
 	} from "$lib/state_machine.js";
 	import { resource, watch } from "runed";
 	import { SpeedState } from "$lib/speed_state.js";
-	import { NumIterations } from "$lib/num_iter_state.js";
 	import { Settings } from "$lib/settings_state.js";
 
 	interface Experiment {
@@ -29,8 +28,6 @@
 	}
 
 	let { openState = $bindable(), ...data }: Experiment = $props();
-
-	let running = $state(false);
 
 	const img_data = resource(
 		() => ExperimentIteration.current,
@@ -62,24 +59,21 @@
 
 	function close() {
 		invoke("save_experiment", { study: Settings.current.study_name });
+		// This was just the test run reset counter
+		ExperimentIteration.current = 0;
 		openState = false;
 	}
 
-	const experiment_state_machine = create_state_machine(
-		close,
-		NumIterations.current as number,
-	);
+	const experiment_state_machine = create_state_machine(close, 3);
 	let signal = $derived(experiment_state_machine.current === "go");
 
 	function expandArray(arr: any[], n: number) {
-		console.log(arr, n);
 		const repeats = Math.ceil(n / arr.length);
-		console.log(repeats);
 
 		return arr.flatMap((element) => Array(repeats).fill(element));
 	}
 
-	let durations = $derived.by(() => {
+	let durations = (() => {
 		let base = [
 			{
 				name: "Normal",
@@ -102,7 +96,7 @@
 				});
 			}
 		}
-		let arr = expandArray(base, NumIterations.current as number);
+		let arr = expandArray(base, 3);
 		for (var i = arr.length - 1; i > 0; i--) {
 			var j = Math.floor(Math.random() * (i + 1));
 			var temp = arr[i];
@@ -110,13 +104,12 @@
 			arr[j] = temp;
 		}
 		return arr;
-	});
+	})();
 	let index = $state(0);
 	watch(
 		() => ExperimentIteration.current,
 		() => {
-			console.log(index);
-			index = ExperimentIteration.current === 0 ? 0 : index + 1;
+			index += 1;
 			if (index >= durations.length) {
 				experiment_state_machine.send("cancel");
 			}
@@ -127,7 +120,9 @@
 
 	onDestroy(async () => {
 		experiment_state_machine.send("cancel");
-		URL.revokeObjectURL(img_data.current!.url);
+		if (img_data.current?.url) {
+			URL.revokeObjectURL(img_data.current!.url);
+		}
 		await publish_event(LsLEvent.Idle);
 	});
 </script>
@@ -148,7 +143,7 @@
 		}}
 	>
 		<State
-			bind:running
+			running={true}
 			duration={durations[index]}
 			state_machine={experiment_state_machine}
 			img_valence={img_data.current?.valence}
