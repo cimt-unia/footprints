@@ -3,7 +3,7 @@ import { PersistedState } from "runed";
 export const Nothing = "";
 
 function get_custom_state(): PersistedState<number | ""> {
-	const SpeedState: PersistedState<number | ""> = new PersistedState("speed", Nothing);
+	const SpeedState: PersistedState<number | ""> = new PersistedState("speed", 4.0);
 	const originalDescriptor = Object.getOwnPropertyDescriptor(
 		Object.getPrototypeOf(SpeedState),
 		'current'

@@ -1,6 +1,7 @@
 import { PersistedState } from "runed";
 
 interface Settings {
+	lang: "de" | "en";
 	show_countdown: boolean;
 	sound_cue: boolean;
 	subject_name: string;
@@ -21,6 +22,7 @@ export const Settings = new PersistedState("settings", default_settings());
 
 function default_settings(): Settings {
 	return {
+		lang: "de",
 		show_countdown: false,
 		sound_cue: false,
 		subject_name: "Subject_1",
