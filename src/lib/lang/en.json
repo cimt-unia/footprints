@@ -8,13 +8,16 @@
             "p3": "At the beginning, there is a short preparation phase in which you should look at a fixation cross on the screen. This is followed by the presentation of an image (5 seconds), followed by a start signal indicating that you should start walking.",
             "p4": "When you reach the end of the path, you will be asked to rate the image according to how it affected you."
         },
+		"general": {
+			"h2": "General Information",
+			"p1": "Pictures communicate. They depict people, objects, and scenes. In this study, we are interested in how various pictures make people feel.",
+			"p2": "As you answer, please remember:<br /> There are no right or wrong answers. We are interested in your individual opinion. Please do not take too long over any picture. Your first response is as good as any."
+		},
         "valence": {
             "h2": "Valence",
-            "p1": "Pictures communicate. They depict people, objects, and scenes. In this study, we are interested in how various pictures make people feel.",
-            "p2": "As you answer, please remember:<br /> There are no right or wrong answers. We are interested in your individual opinion. Please do not take too long over any picture. Your first response is as good as any.",
-            "p3": "We will ask you to rate a series of pictures in terms of how positive or negative they are. If the picture represents something good or positive, please use the right side of the scale to mark your answer. Positive images are those that represent things that make us happy, satisfied, competent, proud, contented, delighted, and so on. It doesn’t matter what the specific picture is about, as long as it represents something positive or good.",
-            "p4": "If the picture represents something bad or negative, please use the left side of the scale to mark your answer. Negative images are those that represent things that make us unhappy, upset, irritated, angry, sad, depressed, and so on. It doesn’t matter what the specific picture is about, as long as it is something negative or bad.",
-            "p5": "Use the middle of the scale to indicate that the picture makes you feel neutral, that is, that you think that the picture is neither positive nor negative."
+            "p1": "We will ask you to rate a series of pictures in terms of how positive or negative they are. If the picture represents something good or positive, please use the right side of the scale to mark your answer. Positive images are those that represent things that make us happy, satisfied, competent, proud, contented, delighted, and so on. It doesn’t matter what the specific picture is about, as long as it represents something positive or good.",
+            "p2": "If the picture represents something bad or negative, please use the left side of the scale to mark your answer. Negative images are those that represent things that make us unhappy, upset, irritated, angry, sad, depressed, and so on. It doesn’t matter what the specific picture is about, as long as it is something negative or bad.",
+            "p3": "Use the middle of the scale to indicate that the picture makes you feel neutral, that is, that you think that the picture is neither positive nor negative."
         },
         "arousal": {
             "h2": "Arousal",

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { LengthState } from "$lib/length_state.js";
+    import { Settings } from "$lib/settings_state.js";
 	import TestRunner from "$routes/experiment/components/TestRunner.svelte";
 	import { Modal } from "@skeletonlabs/skeleton-svelte";
 	import { _ } from "svelte-i18n";
@@ -19,9 +20,14 @@
 		}
 		switch (e.key) {
 			case "Enter": {
-				if (step == 4) {
+				if (step == 5) {
 					// start exp
 					await cb();
+				} else if (!Settings.current.rating.arousal && !Settings.current.rating.valence && step == 1) {
+					step += 3;
+				} else if ((!Settings.current.rating.valence && step == 1) ||
+					(!Settings.current.rating.arousal && step == 2)) {
+					step += 2;
 				} else {
 					step++;
 				}
@@ -29,13 +35,20 @@
 			}
 			case "T":
 			case "t": {
-				if (step == 4) {
+				if (step == 5) {
 					test_open = true;
 				}
 				break;
 			}
 			case "Backspace": {
-				step = Math.max(0, --step);
+				if (!Settings.current.rating.arousal && !Settings.current.rating.valence && step == 4) {
+					step -= 3;
+				} else if ((!Settings.current.rating.valence && step == 3) ||
+					(!Settings.current.rating.arousal && step == 4)) {
+					step -= 2;
+				} else {
+					step = Math.max(0, --step);
+				}
 				break;
 			}
 		}
@@ -51,21 +64,24 @@
 		<p class="mt-4">{$_("instructions.welcome.p3")}</p>
 		<p class="mt-4">{$_("instructions.welcome.p4")}</p>
 	{:else if step === 1}
+		<h2 class="h2">{$_("instructions.general.h2")}</h2>
+
+		<p class="mt-4">{$_("instructions.general.p1")}</p>
+		<p class="mt-4">{@html $_("instructions.general.p2")}</p>
+	{:else if step === 2}
 		<h2 class="h2">{$_("instructions.valence.h2")}</h2>
 
 		<p class="mt-4">{$_("instructions.valence.p1")}</p>
 		<p class="mt-4">{@html $_("instructions.valence.p2")}</p>
 		<p class="mt-4">{$_("instructions.valence.p3")}</p>
-		<p class="mt-4">{$_("instructions.valence.p4")}</p>
-		<p class="mt-4">{$_("instructions.valence.p5")}</p>
-	{:else if step === 2}
+	{:else if step === 3}
 		<h2 class="h2">{$_("instructions.arousal.h2")}</h2>
 
 		<p class="mt-4">{$_("instructions.arousal.p1")}</p>
 		<p class="mt-4">{$_("instructions.arousal.p2")}</p>
 		<p class="mt-4">{$_("instructions.arousal.p3")}</p>
 		<p class="mt-4">{$_("instructions.arousal.p4")}</p>
-	{:else if step === 3}
+	{:else if step === 4}
 		<h2 class="h2">{$_("instructions.procedure.h2")}</h2>
 
 		<h4 class="h4 mt-4">{$_("instructions.procedure.phase_1.h2")}</h4>
@@ -77,7 +93,7 @@
 		<p class="mt-4 mb-4">{@html $_("instructions.procedure.phase_3.p2")}</p>
 		<h4 class="h4">{$_("instructions.procedure.phase_4.h2")}</h4>
 		<p class="mt-4 mb-4">{@html $_("instructions.procedure.phase_4.p1")}</p>
-	{:else if step === 4}
+	{:else if step === 5}
 		<h4 class="h4">{$_("instructions.trigger.h2")}</h4>
 		<p class="mt-4 mb-4">
 			{$_("instructions.trigger.p1")}
