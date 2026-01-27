@@ -42,7 +42,7 @@
 	}
 </script>
 
-<div class="flex flex-col m-auto max-w-4xl text-lg justify-between">
+<div class="flex flex-col m-auto max-w-2xl text-xl justify-between">
 	<h1 class="h1 mb-10 mt-10">{$_("instructions.h1")}</h1>
 	{#if step === 0}
 		<b>{$_("instructions.welcome.h2")}</b>
