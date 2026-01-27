@@ -9,20 +9,19 @@
             "p4": "When you reach the end of the path, you will be asked to rate the image according to how it affected you."
         },
         "valence": {
-            "h2": "Valence / Positivity",
-            "p1": "Images communicate. They show people, objects, and scenes. In this study, we are interested in how different images make people feel.",
-            "p2": "Please keep in mind when answering: There are no right or wrong answers. We are interested in your individual opinion. Please do not linger too long on an image. Your first answer is just as good as any other.",
-            "p3": "We will ask you to rate a series of images according to how positive or negative they are. If the image represents something good or positive, please use the right side of the scale to mark your answer. Positive images are those that depict things that make us happy, satisfied, competent, proud, fulfilled, pleased, etc. It does not matter what the specific image is about, as long as it represents something positive or good.",
-            "p4": "If the image represents something bad or negative, please use the left side of the scale to mark your answer. Negative images are those that depict things that make us unhappy, annoyed, irritated, angry, sad, etc. It does not matter what the specific image is about, as long as it represents something negative or bad.",
-            "p5": "Use the middle of the scale to indicate that the image makes you feel neutral, i.e., neither positive nor negative. Please use the entire range of the scale for your answers, rather than limiting yourself to just a few points."
+            "h2": "Valence",
+            "p1": "Pictures communicate. They depict people, objects, and scenes. In this study, we are interested in how various pictures make people feel.",
+            "p2": "As you answer, please remember:<br /> There are no right or wrong answers. We are interested in your individual opinion. Please do not take too long over any picture. Your first response is as good as any.",
+            "p3": "We will ask you to rate a series of pictures in terms of how positive or negative they are. If the picture represents something good or positive, please use the right side of the scale to mark your answer. Positive images are those that represent things that make us happy, satisfied, competent, proud, contented, delighted, and so on. It doesn’t matter what the specific picture is about, as long as it represents something positive or good.",
+            "p4": "If the picture represents something bad or negative, please use the left side of the scale to mark your answer. Negative images are those that represent things that make us unhappy, upset, irritated, angry, sad, depressed, and so on. It doesn’t matter what the specific picture is about, as long as it is something negative or bad.",
+            "p5": "Use the middle of the scale to indicate that the picture makes you feel neutral, that is, that you think that the picture is neither positive nor negative."
         },
         "arousal": {
-            "h2": "Arousal / Excitement",
-            "p1": "We will ask you to rate a series of images according to how strong the emotions are that they evoke. In other words, we want to know how intensely the image generates emotions; it does not matter if the image represents something good or bad. We are only interested in the degree of arousal, energy, or intensity of the feeling it represents.",
-            "p2": "Use the right side of the scale if the image represents something that is highly emotional. Words describing the emotional state created by the image could be, for example, 'excited', 'alert', 'activated', 'charged', or 'energized'.",
-            "p3": "Use the left side of the scale if the image represents something that is not strongly emotional. Words describing the emotional state could be, for example, 'unaroused', 'slow', 'calm', 'lacking energy', 'relaxed', or 'peaceful'. Use the middle of the scale to mark an image that is moderately arousing or lies between the two extremes.",
-            "p4": "Please use the entire range of the scale for your answers, rather than limiting yourself to just a few points. When rating, you should forget whether the image represents something positive or negative, good or bad. Rate the image solely based on the intensity of the emotions it triggers.",
-            "p5": "Example: You have two images – one shows an athlete winning a gold medal (something good), and another shows an athlete getting injured and losing the race (something bad). You can give both images the same rating because they generate a similar emotional intensity, even though the feelings are different. Your answers should depend solely on how strong the emotions are that the image evokes."
+            "h2": "Arousal",
+            "p1": "We will ask you to rate a series of pictures in terms of the amount of emotion that they evoke. In other words, we would like to know how much emotional intensity the picture creates; whether the picture captures something good or bad doesn’t matter. We are interested only in the degree of excitement, energy, or intensity of feeling it represents.",
+            "p2": "Use the right side of the scale to mark your answer if the picture represents something that is strongly emotional. The words that we might use to describe the emotional state that the picture creates are aroused, alert, activated, charged, or energized.",
+            "p3": "Use the left side of the scale to mark your answer if the picture represents something that is not strongly emotional. The words that we might use to describe the emotional state that the picture creates are unaroused, slow, still, de-energized, calm, or peaceful.",
+            "p4": "Use the middle of the scale to indicate an image that is moderately arousing or halfway through the two extremes.",
         },
         "procedure": {
             "h2": "Procedure",
