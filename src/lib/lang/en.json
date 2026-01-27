@@ -21,7 +21,7 @@
             "p1": "We will ask you to rate a series of pictures in terms of the amount of emotion that they evoke. In other words, we would like to know how much emotional intensity the picture creates; whether the picture captures something good or bad doesn’t matter. We are interested only in the degree of excitement, energy, or intensity of feeling it represents.",
             "p2": "Use the right side of the scale to mark your answer if the picture represents something that is strongly emotional. The words that we might use to describe the emotional state that the picture creates are aroused, alert, activated, charged, or energized.",
             "p3": "Use the left side of the scale to mark your answer if the picture represents something that is not strongly emotional. The words that we might use to describe the emotional state that the picture creates are unaroused, slow, still, de-energized, calm, or peaceful.",
-            "p4": "Use the middle of the scale to indicate an image that is moderately arousing or halfway through the two extremes.",
+            "p4": "Use the middle of the scale to indicate an image that is moderately arousing or halfway through the two extremes."
         },
         "procedure": {
             "h2": "Procedure",
