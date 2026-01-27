@@ -42,7 +42,7 @@
 	}
 </script>
 
-<div class="flex flex-col m-auto max-w-4xl text-lg justify-between">
+<div class="flex flex-col m-auto max-w-2xl text-xl justify-between">
 	<h1 class="h1 mb-10 mt-10">{$_("instructions.h1")}</h1>
 	{#if step === 0}
 		<b>{$_("instructions.welcome.h2")}</b>
@@ -54,7 +54,7 @@
 		<h2 class="h2">{$_("instructions.valence.h2")}</h2>
 
 		<p class="mt-4">{$_("instructions.valence.p1")}</p>
-		<p class="mt-4">{$_("instructions.valence.p2")}</p>
+		<p class="mt-4">{@html $_("instructions.valence.p2")}</p>
 		<p class="mt-4">{$_("instructions.valence.p3")}</p>
 		<p class="mt-4">{$_("instructions.valence.p4")}</p>
 		<p class="mt-4">{$_("instructions.valence.p5")}</p>
@@ -65,7 +65,6 @@
 		<p class="mt-4">{$_("instructions.arousal.p2")}</p>
 		<p class="mt-4">{$_("instructions.arousal.p3")}</p>
 		<p class="mt-4">{$_("instructions.arousal.p4")}</p>
-		<p class="mt-4">{$_("instructions.arousal.p5")}</p>
 	{:else if step === 3}
 		<h2 class="h2">{$_("instructions.procedure.h2")}</h2>
 
