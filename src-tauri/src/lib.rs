@@ -96,7 +96,6 @@ fn setup_managed_state(app: &AppHandle) -> Result<()> {
     let sink = rodio::Sink::connect_new(stream_handle.mixer());
     std::mem::forget(stream_handle);
     app.manage(sink);
-    app.manage(LsLManager::new());
     app.manage(Mutex::new(Logger::default()));
     Ok(())
 }
