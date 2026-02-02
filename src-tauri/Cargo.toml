@@ -1,6 +1,6 @@
 [package]
 name = "footprint"
-version = "0.1.8"
+version = "0.1.9"
 description = "A Tauri App"
 authors = ["korbinian flietel", "laura gottschling"]
 edition = "2021"
