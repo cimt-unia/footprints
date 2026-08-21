@@ -51,5 +51,11 @@
             "p1": "Some images may be disturbing to some people (e.g., war, violence, injuries, nudity, or depictions that trigger anxiety in some individuals).",
             "b": "Ready? Press Enter to start the experiment. Press T for a test run."
         }
+    },
+    "confirm": {
+        "continue": "Press Enter to continue"
+    },
+    "pause": {
+        "continue": "Break between blocks. Press Enter to continue."
     }
 }

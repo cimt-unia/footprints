@@ -51,5 +51,11 @@
 			"p1": "Manche Bilder können auf manche Menschen verstörend wirken (z.B. Krieg, Gewalt, Verletzungen, Nacktheit oder bei manchen Personen Ängste auslösende Darstellungen).",
 			"b": "Bereit? Drücke Enter um das Experiment zu starten. Drücke T für einen Testdurchlauf."
 		}
+	},
+	"confirm": {
+		"continue": "Enter drücken um fortzufahren"
+	},
+	"pause": {
+		"continue": "Pause zwischen den Blöcken. Enter drücken um fortzufahren."
 	}
 }

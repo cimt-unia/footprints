@@ -56,13 +56,17 @@ impl State {
 
     fn pick(&mut self, bucket: usize) -> usize {
         let index: u64 = rand::random();
-        let idx_bucket = match bucket {
-            0 => &mut self.valid_idx_ll,
-            1 => &mut self.valid_idx_lh,
-            2 => &mut self.valid_idx_hl,
-            3 => &mut self.valid_idx_hh,
+        let (idx_bucket, len) = match bucket {
+            0 => (&mut self.valid_idx_ll, self.ll),
+            1 => (&mut self.valid_idx_lh, self.lh),
+            2 => (&mut self.valid_idx_hl, self.hl),
+            3 => (&mut self.valid_idx_hh, self.hh),
             _ => unreachable!(),
         };
+        // Refill idx if experiment runs for too long.
+        if idx_bucket.is_empty() {
+            idx_bucket.extend(0..len);
+        }
         idx_bucket.swap_remove(index as usize % idx_bucket.len())
     }
 }
@@ -165,10 +169,13 @@ impl ImageManager {
         })
     }
 
-    pub fn get_rand_image(&mut self, init: bool) -> &Image {
-        if init {
-            self.state.reset();
-        }
+    /// Refills every quadrant pool. Called once at the start of an experiment and never at a
+    /// block boundary, so sampling without replacement carries on across blocks.
+    pub fn reset(&mut self) {
+        self.state.reset();
+    }
+
+    pub fn get_rand_image(&mut self) -> &Image {
         let q = self.dist.generate();
         debug_assert!(q < 4);
         let i = match q {

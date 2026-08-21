@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Countdown from "$components/Countdown.svelte";
 	import Sprite from "./Sprite.svelte";
+	import FixationCross from "./FixationCross.svelte";
 	import type { ExperimentStateProps } from "./types.js";
 	import { invoke } from "@tauri-apps/api/core";
 	import { Settings } from "$lib/settings_state.js";
@@ -17,8 +18,13 @@
 	let w: number = $state(0);
 </script>
 
-<div class="fixation-cross-container">
-	<img class="h-full w-full object-contain" src={img_url} alt="stimulus" />
+<div class="fixation-cross-container" class:no-stimulus={!img_url}>
+	{#if img_url}
+		<img class="h-full w-full object-contain" src={img_url} alt="stimulus" />
+	{:else}
+		<!-- Trials of a block without a stimulus show the same cross as the baseline. -->
+		<FixationCross />
+	{/if}
 </div>
 <div>
 	{#if start_go}
@@ -42,5 +48,9 @@
 		position: relative;
 		top: 5%;
 		left: 10%;
+	}
+
+	.no-stimulus {
+		background-color: white;
 	}
 </style>

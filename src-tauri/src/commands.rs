@@ -8,8 +8,13 @@ use std::sync::Mutex;
 use rodio::Sink;
 
 #[tauri::command]
-pub fn get_image(init: bool, state: State<'_, Mutex<ImageManager>>) -> Image {
-    state.lock().unwrap().get_rand_image(init).clone()
+pub fn get_image(state: State<'_, Mutex<ImageManager>>) -> Image {
+    state.lock().unwrap().get_rand_image().clone()
+}
+
+#[tauri::command]
+pub fn reset_images(state: State<'_, Mutex<ImageManager>>) {
+    state.lock().unwrap().reset();
 }
 
 #[tauri::command]

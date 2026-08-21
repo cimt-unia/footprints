@@ -14,16 +14,16 @@
 			open={openState}
 			onOpenChange={(e) => (openState = e.open)}
 			triggerBase="btn preset-tonal"
-			contentBase="bg-surface-100-900 p-4 space-y-4 shadow-xl w-[280px] h-screen"
+			contentBase="bg-surface-100-900 p-4 space-y-4 shadow-xl w-[380px] h-screen"
 			positionerJustify="justify-end"
 			positionerAlign=""
 			positionerPadding=""
 			transitionsPositionerIn={{
-				x: window.outerWidth + 280,
+				x: window.outerWidth + 380,
 				duration: 200,
 			}}
 			transitionsPositionerOut={{
-				x: window.outerWidth + 280,
+				x: window.outerWidth + 380,
 				duration: 200,
 			}}
 		>

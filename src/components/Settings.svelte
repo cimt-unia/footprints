@@ -6,7 +6,6 @@
 	import { Settings } from "$lib/settings_state.js";
 	import { invoke } from "@tauri-apps/api/core";
 	import { SpeedState } from "$lib/speed_state.js";
-	import { NumIterations } from "$lib/num_iter_state.js";
 	import { locale } from "svelte-i18n";
 
 	let { openState = $bindable() } = $props();
@@ -65,24 +64,15 @@
 					>Calibrate Speed</button
 				>
 				<label class="label">
-					<span class="label-text">Track length in m</span>
+					<span class="label-text"
+						>Total walking distance per trial in m</span
+					>
 					<input
 						type="number"
 						class="input"
-						placeholder="Length in m"
+						placeholder="Distance in m"
 						required
 						bind:value={LengthState.current}
-					/>
-				</label>
-				<label class="label">
-					<span class="label-text">Instruction Iterations</span>
-					<input
-						type="number"
-						class="input"
-						placeholder="Number of Iterations"
-						step="1"
-						required
-						bind:value={NumIterations.current}
 					/>
 				</label>
 				<label class="label">

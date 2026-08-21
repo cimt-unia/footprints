@@ -5,7 +5,7 @@ mod lsl;
 mod rand;
 
 use anyhow::{Context, Result};
-use commands::{get_image, open_calibration, play_sound, publish_lsl};
+use commands::{get_image, open_calibration, play_sound, publish_lsl, reset_images};
 use image_manager::ImageManager;
 use logger::{add_rating, init_logger, save_experiment, Logger};
 use lsl::LsLManager;
@@ -29,6 +29,7 @@ pub fn run() -> Result<()> {
     builder
         .invoke_handler(tauri::generate_handler![
             get_image,
+            reset_images,
             open_calibration,
             publish_lsl,
             init_logger,

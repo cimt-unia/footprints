@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { SpeedState } from "$lib/speed_state.js";
 	import { AppBar, Modal } from "@skeletonlabs/skeleton-svelte";
-	import { LengthState } from "$lib/length_state.js";
+	import { CalibrationLengthState } from "$lib/calibration_length_state.js";
 	import Calibration from "./Calibration.svelte";
 
 	let openState = $state(false);
@@ -33,13 +33,13 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">Track length in m</span>
+		<span class="label-text">Walked distance per step in m</span>
 		<input
 			type="number"
 			class="input"
 			placeholder="Length in m"
 			required
-			bind:value={LengthState.current}
+			bind:value={CalibrationLengthState.current}
 		/>
 	</label>
 	<button
@@ -55,7 +55,7 @@
 		{#snippet content()}
 			<Calibration
 				{steps}
-				length={LengthState.current as number}
+				length={CalibrationLengthState.current as number}
 				bind:speed
 				bind:openState
 			/>

@@ -37,7 +37,7 @@ impl LsL {
             "Markers",
             1,
             lsl::IRREGULAR_RATE,
-            lsl::ChannelFormat::Int32,
+            lsl::ChannelFormat::Int64,
             "",
         )?;
 

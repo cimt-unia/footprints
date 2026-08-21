@@ -24,6 +24,9 @@ pub fn add_rating(rating: Rating, state: State<'_, Mutex<Logger>>) {
     let mut logger = state.lock().unwrap();
     let data = LogData {
         time: Local::now(),
+        block: rating.block,
+        trial_in_block: rating.trial_in_block,
+        has_stimulus: rating.has_stimulus,
         baseline_speed: rating.baseline_speed,
         modification: rating.modification,
         modified_speed: rating.effective_speed,
@@ -73,6 +76,11 @@ pub fn save_experiment(study: String, state: State<'_, Mutex<Logger>>, app: AppH
 
 #[derive(Deserialize)]
 pub struct Rating {
+    /// 1 based index of the block this trial belongs to.
+    block: usize,
+    /// 1 based index of the trial inside its block.
+    trial_in_block: usize,
+    has_stimulus: bool,
     baseline_time: DateTime<Local>,
     stimulus_time: DateTime<Local>,
     go_time: DateTime<Local>,
@@ -80,16 +88,22 @@ pub struct Rating {
     baseline_speed: f64,
     modification: SpeedModification,
     effective_speed: f64,
-    name: String,
-    n_valence: Magnitude,
-    n_arousal: Magnitude,
+    // The image fields are absent on trials without a stimulus, those show a fixation cross
+    // and are not rated.
+    name: Option<String>,
+    n_valence: Option<Magnitude>,
+    n_arousal: Option<Magnitude>,
     valence: Option<u8>,
     arousal: Option<u8>,
 }
 
+// The field order is the CSV column order.
 #[derive(Serialize, Debug)]
 struct LogData {
     time: DateTime<Local>,
+    block: usize,
+    trial_in_block: usize,
+    has_stimulus: bool,
     baseline_time: DateTime<Local>,
     stimulus_time: DateTime<Local>,
     go_time: DateTime<Local>,
@@ -97,9 +111,9 @@ struct LogData {
     baseline_speed: f64,
     modification: SpeedModification,
     modified_speed: f64,
-    picture: String,
-    n_valence: Magnitude,
-    n_arousal: Magnitude,
+    picture: Option<String>,
+    n_valence: Option<Magnitude>,
+    n_arousal: Option<Magnitude>,
     valence: Option<u8>,
     arousal: Option<u8>,
 }
