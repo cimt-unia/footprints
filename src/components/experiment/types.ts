@@ -16,4 +16,6 @@ export interface ExperimentStateProps {
 	img_name?: string;
 	img_url?: string;
 	img_id?: number;
+	/** The element flashed by the visual go cue, see `go_cue`. */
+	cue_target?: HTMLElement;
 }
