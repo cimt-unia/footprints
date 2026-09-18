@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { Settings } from "$lib/settings_state.js";
 	import type { Duration } from "$lib/durations.js";
+	import { go_cue } from "$lib/go_cue.js";
 	import type { MyEvents, MyStates } from "$lib/state_machine.js";
-	import { invoke } from "@tauri-apps/api/core";
 	import type { FiniteStateMachine } from "runed";
 
 	interface Props {
@@ -13,6 +12,8 @@
 		/** Edge length of the square the triangle is drawn into. */
 		size?: number;
 		color?: string;
+		/** The element flashed by the visual go cue at each turnaround. */
+		cue_target?: HTMLElement;
 	}
 
 	let { size = 120, color = "black", ...props }: Props = $props();
@@ -48,9 +49,7 @@
 			tracker!.style.left = `${right_tick}px`;
 			left = true;
 			await sleep(3000);
-			if (Settings.current.sound_cue) {
-				invoke("play_sound");
-			}
+			go_cue(props.cue_target);
 			animation2 = tracker!.animate(
 				[{ left: `${right_tick}px` }, { left: `${left_tick}px` }],
 				{
@@ -63,9 +62,7 @@
 				tracker!.style.left = `${left_tick}px`;
 				left = false;
 				await sleep(3000);
-				if (Settings.current.sound_cue) {
-					invoke("play_sound");
-				}
+				go_cue(props.cue_target);
 				animation3 = tracker!.animate(
 					[{ left: `${left_tick}px` }, { left: `${centre}px` }],
 					{
