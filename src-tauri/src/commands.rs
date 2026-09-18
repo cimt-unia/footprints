@@ -2,7 +2,7 @@ use tauri::{path::BaseDirectory, AppHandle, Manager, State};
 
 use crate::{
     image_manager::{Image, ImageManager},
-    lsl::{LsLManager, LsLMarkerJson},
+    lsl::{LsLManager, LsLMarker},
 };
 use rodio::Sink;
 use std::sync::Mutex;
@@ -28,7 +28,7 @@ pub fn open_calibration(app: AppHandle) {
 }
 
 #[tauri::command]
-pub fn publish_lsl(event: LsLMarkerJson, state: State<'_, LsLManager>) {
+pub fn publish_lsl(event: LsLMarker, state: State<'_, LsLManager>) {
     state.publish_event(event).expect("Lsl worker crashed");
 }
 
