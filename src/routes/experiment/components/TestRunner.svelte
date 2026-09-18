@@ -104,7 +104,7 @@
 				duration={durations[index]}
 				state_machine={experiment_state_machine}
 				{current_trial}
-				marker_block_type="test"
+				marker_type="test"
 				img_id={images.current?.id}
 				img_valence={images.current?.valence}
 				img_arousal={images.current?.arousal}

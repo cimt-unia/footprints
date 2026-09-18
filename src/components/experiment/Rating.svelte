@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ExperimentStateProps } from "./types.js";
 	import { Settings } from "$lib/settings_state.js";
-	import { publish_event, eventFromTrial } from "$lib/lsl.js";
+	import { publish_event, ratingMarker } from "$lib/lsl.js";
 
 	const props: ExperimentStateProps = $props();
 
@@ -93,12 +93,15 @@
 		try {
 			if (step == 0) {
 				await publish_event(
-					eventFromTrial(props.current_trial, "RatingValence", {
-						image_id: props.img_id,
-						speed: props.duration.kind,
-						data: { Rating: valence_rating! },
-						block_type: props.marker_block_type,
-					}),
+					ratingMarker(
+						props.current_trial,
+						{ state: "rating_valence", rating: valence_rating! },
+						{
+							image_id: props.img_id,
+							speed: props.duration.kind,
+							type: props.marker_type,
+						},
+					),
 				);
 				if (Settings.current.rating.arousal) {
 					step++;
@@ -111,12 +114,15 @@
 				}
 			} else {
 				await publish_event(
-					eventFromTrial(props.current_trial, "RatingArousal", {
-						image_id: props.img_id,
-						speed: props.duration.kind,
-						data: { Rating: arousal_rating! },
-						block_type: props.marker_block_type,
-					}),
+					ratingMarker(
+						props.current_trial,
+						{ state: "rating_arousal", rating: arousal_rating! },
+						{
+							image_id: props.img_id,
+							speed: props.duration.kind,
+							type: props.marker_type,
+						},
+					),
 				);
 				done = true;
 				props.state_machine.send("rated", {
