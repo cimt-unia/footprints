@@ -66,7 +66,8 @@
 		durations,
 		images,
 	);
-	let signal = $derived(experiment_state_machine.current === "go");
+	// The full screen wrapper the visual go cue flashes.
+	let cue_target: HTMLDivElement | undefined = $state();
 
 	// `durations` is index aligned with the plan, so the trial counter indexes it directly.
 	// The clamp only matters for the frame after the last trial, before the modal closes.
@@ -88,7 +89,7 @@
 	{#if State}
 		<div
 			class="absolute min-w-screen min-h-screen p-4"
-			class:flash-background={signal}
+			bind:this={cue_target}
 			in:fly={{
 				x: 200,
 				duration: 500,
@@ -109,19 +110,8 @@
 				img_arousal={images.current?.arousal}
 				img_name={images.current?.name}
 				img_url={images.current?.url}
+				{cue_target}
 			/>
 		</div>
 	{/if}
 {/key}
-
-<style>
-	@keyframes flash {
-		50% {
-			background-color: green;
-		}
-	}
-
-	.flash-background {
-		animation: flash 600ms ease-out 1;
-	}
-</style>

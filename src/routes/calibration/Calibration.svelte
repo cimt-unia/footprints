@@ -34,7 +34,7 @@
 
 	function start() {
 		// Detached, so the walk timer below is armed without waiting on the IPC round trip.
-		publish_event_detached(calibrationMarker(step, "CalibrationStart"));
+		publish_event_detached(calibrationMarker(step, { state: "start" }));
 		let last_time = performance.now();
 		invoke("play_sound");
 
@@ -47,7 +47,7 @@
 	}
 
 	function stop() {
-		publish_event_detached(calibrationMarker(step, "CalibrationStop"));
+		publish_event_detached(calibrationMarker(step, { state: "stop" }));
 		if (frame) {
 			cancelAnimationFrame(frame);
 			frame = undefined;
@@ -71,13 +71,13 @@
 	}
 
 	function discard_step() {
-		publish_event_detached(calibrationMarker(step, "CalibrationDiscarded"));
+		publish_event_detached(calibrationMarker(step, { state: "discarded" }));
 		elapsed = 0;
 		open_decider = false;
 	}
 
 	function confirm_step() {
-		publish_event_detached(calibrationMarker(step, "CalibrationConfirmed"));
+		publish_event_detached(calibrationMarker(step, { state: "confirmed" }));
 		step_speeds.push(step_speed);
 		if (step === steps) {
 			speed = Number(
@@ -87,8 +87,9 @@
 			);
 			// The calibration is done, put its result into the recording while it is in hand.
 			publish_event_detached(
-				calibrationMarker(step, "CalibrationResult", {
-					result_speed: speed,
+				calibrationMarker(step, {
+					state: "result",
+					speed_kmh: speed,
 				}),
 			);
 			openState = false;

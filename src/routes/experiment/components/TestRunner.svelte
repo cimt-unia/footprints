@@ -67,7 +67,8 @@
 		images,
 		"test",
 	);
-	let signal = $derived(experiment_state_machine.current === "go");
+	// The full screen wrapper the visual go cue flashes.
+	let cue_target: HTMLDivElement | undefined = $state();
 
 	let index = $derived(
 		Math.min(ExperimentIteration.current, durations.length - 1),
@@ -87,7 +88,7 @@
 	{#if State}
 		<div
 			class="absolute min-w-screen min-h-screen p-4"
-			class:flash-background={signal}
+			bind:this={cue_target}
 			in:fly={{
 				x: 200,
 				duration: 500,
@@ -103,25 +104,14 @@
 				duration={durations[index]}
 				state_machine={experiment_state_machine}
 				{current_trial}
-				marker_block_type="test"
+				marker_type="test"
 				img_id={images.current?.id}
 				img_valence={images.current?.valence}
 				img_arousal={images.current?.arousal}
 				img_name={images.current?.name}
 				img_url={images.current?.url}
+				{cue_target}
 			/>
 		</div>
 	{/if}
 {/key}
-
-<style>
-	@keyframes flash {
-		50% {
-			background-color: green;
-		}
-	}
-
-	.flash-background {
-		animation: flash 600ms ease-out 1;
-	}
-</style>

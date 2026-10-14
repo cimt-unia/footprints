@@ -1,5 +1,5 @@
 import { FiniteStateMachine, PersistedState } from "runed";
-import { eventFromTrial, publish_event, sessionMarker } from "./lsl.js";
+import { eventFromTrial, pauseMarker, publish_event, sessionMarker } from "./lsl.js";
 import { invoke } from "@tauri-apps/api/core";
 import { stimulus_debounce } from "./debounce.js";
 import { StimulusModState } from "./stimulus_time_mod.js";
@@ -28,7 +28,7 @@ interface Log {
  * practice run cannot be mistaken for real data in the recording.
  */
 export function create_state_machine(cancel_callback: () => void, plan: PlannedTrial[], durations: Duration[], images: TrialImages, mode: "experiment" | "test" = "experiment"): FiniteStateMachine<MyStates, MyEvents> {
-	const marker_block_type = mode === "test" ? "test" as const : undefined;
+	const marker_type = mode === "test" ? "test" as const : undefined;
 	// We just created the experiment state machine so we are in the first iteration.
 	ExperimentIteration.current = 0;
 
@@ -145,10 +145,10 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 					// Resolves right away, the image was prefetched during the previous trial.
 					// Only then does `images.current` belong to this trial.
 					await images.promote(iteration);
-					await publish_event(eventFromTrial(plan[iteration], "Baseline", {
+					await publish_event(eventFromTrial(plan[iteration], "baseline", {
 						image_id: images.current?.id,
 						speed: durations[iteration].kind,
-						block_type: marker_block_type,
+						type: marker_type,
 					}));
 					images.prefetch(iteration + 1);
 				},
@@ -165,10 +165,10 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 					log.stimulus_time = new Date().toISOString();
 					const trial = plan[ExperimentIteration.current];
 					const duration = durations[ExperimentIteration.current];
-					await publish_event(eventFromTrial(trial, "Stimulus", {
+					await publish_event(eventFromTrial(trial, "stimulus", {
 						image_id: images.current?.id,
 						speed: duration.kind,
-						block_type: marker_block_type,
+						type: marker_type,
 					}));
 					const random = jittered_duration(StimulusModState.current);
 					stimulus_debounce(experiment_state_machine, random * 1000)
@@ -184,10 +184,10 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 					log.go_time = new Date().toISOString();
 					const trial = plan[ExperimentIteration.current];
 					const duration = durations[ExperimentIteration.current];
-					await publish_event(eventFromTrial(trial, "Go", {
+					await publish_event(eventFromTrial(trial, "go", {
 						image_id: images.current?.id,
 						speed: duration.kind,
-						block_type: marker_block_type,
+						type: marker_type,
 					}));
 				},
 				// Without a stimulus there is nothing to rate, the subject only confirms.
@@ -207,10 +207,10 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 					log.rating_time = new Date().toISOString();
 					const trial = plan[ExperimentIteration.current];
 					const duration = durations[ExperimentIteration.current];
-					await publish_event(eventFromTrial(trial, "RatingPrompt", {
+					await publish_event(eventFromTrial(trial, "rating_prompt", {
 						image_id: images.current?.id,
 						speed: duration.kind,
-						block_type: marker_block_type,
+						type: marker_type,
 					}));
 				},
 				rated: (data: any) => {
@@ -228,10 +228,10 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 					log.rating_time = new Date().toISOString();
 					const trial = plan[ExperimentIteration.current];
 					const duration = durations[ExperimentIteration.current];
-					await publish_event(eventFromTrial(trial, "RatingPrompt", {
+					await publish_event(eventFromTrial(trial, "rating_prompt", {
 						image_id: images.current?.id,
 						speed: duration.kind,
-						block_type: marker_block_type,
+						type: marker_type,
 					}));
 				},
 				confirmed: (data: any) => {
@@ -249,11 +249,7 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 					const iteration = ExperimentIteration.current;
 					// A pause shows no image; promoting clears the one from the trial before it.
 					await images.promote(iteration);
-					await publish_event(eventFromTrial(plan[iteration], "None", {
-						image_id: images.current?.id,
-						speed: durations[iteration].kind,
-						block_type: marker_block_type,
-					}));
+					await publish_event(pauseMarker(plan[iteration]));
 					images.prefetch(iteration + 1);
 				},
 				continued: () => {

@@ -49,6 +49,15 @@
 					<p>Sound cue</p>
 				</label>
 
+				<label class="flex items-center space-x-2">
+					<input
+						class="checkbox"
+						type="checkbox"
+						bind:checked={Settings.current.visual_cue}
+					/>
+					<p>Visual cue</p>
+				</label>
+
 				<label class="label">
 					<span class="label-text">Walking Speed in km/h</span>
 					<input
