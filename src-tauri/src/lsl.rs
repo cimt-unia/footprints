@@ -56,7 +56,7 @@ pub struct StimulusTrial {
     #[serde(default)]
     speed: SpeedModifier,
     // Absent when the image of the trial failed to load.
-    image_data: Option<ImageData>,
+    image_id: Option<ImageData>,
     #[serde(flatten)]
     event: StimulusEvent,
 }
