@@ -17,7 +17,7 @@
 	import { SpeedState } from "$lib/speed_state.js";
 	import { Settings } from "$lib/settings_state.js";
 	import { Blocks, build_trial_plan } from "$lib/blocks_state.js";
-	import { balanced_durations, speed_conditions } from "$lib/durations.js";
+	import { balanced_durations } from "$lib/durations.js";
 
 	interface Experiment {
 		openState: boolean;
@@ -53,11 +53,8 @@
 	// One duration per planned trial, with the speed conditions balanced inside every block.
 	// Fixed for the whole run, like the plan it is aligned with.
 	const durations = balanced_durations(
-		speed_conditions(
-			data.length,
-			SpeedState.current as number,
-			Settings.current,
-		),
+		data.length,
+		SpeedState.current as number,
 		plan,
 	);
 	const experiment_state_machine = create_state_machine(

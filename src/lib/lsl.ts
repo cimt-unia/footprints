@@ -41,7 +41,7 @@ export type LsLMarker =
 	| { type: "pause", block: number }
 	| { type: "calibration", step: number } & CalibrationEvent
 	| { type: "neutral" } & TrialMarker & { state: TrialPhase }
-	| { type: MarkerRunKind, image_id?: number } & TrialMarker & StimulusEvent;
+	| { type: MarkerRunKind | "static_stimulus", image_id?: number } & TrialMarker & StimulusEvent;
 
 /** Everything about a trial marker that the trial itself does not determine. */
 export interface MarkerDetails {
@@ -54,6 +54,14 @@ export interface MarkerDetails {
 	 * trials, only the recording must not confuse them with the real thing.
 	 */
 	type?: MarkerRunKind
+}
+
+/** The tag of a trial that shows an image, which only a run override can change. */
+function image_trial_type(trial: PlannedTrial, details: MarkerDetails): MarkerRunKind | "static_stimulus" {
+	if (details.type) {
+		return details.type;
+	}
+	return trial.kind === "static_stimulus" ? "static_stimulus" : "stimulus";
 }
 
 /** A marker for one trial of the plan, for the phases that carry no data. */
@@ -75,7 +83,7 @@ export function eventFromTrial(trial: PlannedTrial, phase: TrialPhase, details: 
 	}
 
 	return {
-		type: details.type ?? "stimulus",
+		type: image_trial_type(trial, details),
 		image_id: details.image_id,
 		...common
 	}
@@ -91,7 +99,7 @@ export function ratingMarker(
 	details: MarkerDetails = {}
 ): LsLMarker {
 	return {
-		type: details.type ?? "stimulus",
+		type: image_trial_type(trial, details),
 		block: trial.block + 1,
 		trial: trial.trial_in_block + 1,
 		speed: details.speed ?? "none",

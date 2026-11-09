@@ -1,17 +1,15 @@
 <script lang="ts">
 	import type { ExperimentStateProps } from "./types.js";
-	import { Settings } from "$lib/settings_state.js";
 	import { publish_event, ratingMarker } from "$lib/lsl.js";
 
 	const props: ExperimentStateProps = $props();
 
-	let valence_rating = $state(
-		Settings.current.rating.valence ? 4 : undefined,
-	);
-	let arousal_rating = $state(
-		Settings.current.rating.arousal ? 4 : undefined,
-	);
-	let step = $state(Settings.current.rating.valence ? 0 : 1);
+	// The scales of this trial's block, it is settled for as long as this screen is up.
+	const { valence, arousal } = props.current_trial.settings.rating;
+
+	let valence_rating = $state(valence ? 4 : undefined);
+	let arousal_rating = $state(arousal ? 4 : undefined);
+	let step = $state(valence ? 0 : 1);
 
 	async function onKeyDown(e: KeyboardEvent) {
 		switch (e.key) {
@@ -103,7 +101,7 @@
 						},
 					),
 				);
-				if (Settings.current.rating.arousal) {
+				if (arousal) {
 					step++;
 				} else {
 					done = true;

@@ -15,8 +15,8 @@
 	import { TrialImages } from "$lib/trial_images.svelte.js";
 	import { SpeedState } from "$lib/speed_state.js";
 	import { Settings } from "$lib/settings_state.js";
-	import { build_trial_plan } from "$lib/blocks_state.js";
-	import { balanced_durations, speed_conditions } from "$lib/durations.js";
+	import { Blocks, build_trial_plan, test_block } from "$lib/blocks_state.js";
+	import { balanced_durations } from "$lib/durations.js";
 
 	interface Experiment {
 		openState: boolean;
@@ -25,9 +25,9 @@
 
 	let { openState = $bindable(), ...data }: Experiment = $props();
 
-	// The test run is always a single short block with a stimulus, independent of the
-	// configured blocks.
-	const plan = build_trial_plan([{ kind: "stimulus", trials: 3 }]);
+	// The test run is always a single short block with a stimulus, whatever the block sequence
+	// looks like. It only takes its settings from there.
+	const plan = build_trial_plan([test_block(Blocks.current)]);
 
 	// Owns the stimulus image of the running trial and resets the pool on construction.
 	const images = new TrialImages(plan);
@@ -53,11 +53,8 @@
 	}
 
 	const durations = balanced_durations(
-		speed_conditions(
-			data.length,
-			SpeedState.current as number,
-			Settings.current,
-		),
+		data.length,
+		SpeedState.current as number,
 		plan,
 	);
 	const experiment_state_machine = create_state_machine(

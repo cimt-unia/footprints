@@ -40,12 +40,15 @@ pub enum LsLMarker {
     },
     Neutral(NeutralTrial),
     Stimulus(StimulusTrial),
+    // A stimulus trial without the walking: it skips `Go` and its speed is always `None`. It has
+    // its own tag so a recording can tell it from a walked trial without looking for the gap.
+    StaticStimulus(StimulusTrial),
     // A practice run opened from the instructions. It runs an ordinary stimulus plan, the tag is
     // what keeps a recording from confusing it with real data.
     Test(StimulusTrial),
 }
 
-// A trial that shows an emotional image, the only kind that is rated.
+// A trial that shows an emotional image, with or without walking. The only kind that is rated.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct StimulusTrial {
     // 1 based index of the block inside the plan.
@@ -138,7 +141,7 @@ impl From<u16> for ImageData {
 }
 
 // The walking condition of a trial. `None` covers the markers that involve no walking at all: a
-// pause, a session start and a calibration run.
+// pause, a static stimulus trial, a session start and a calibration run.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq)]
 #[repr(u8)]
 #[serde(rename_all = "snake_case")]
@@ -165,6 +168,9 @@ pub enum BlockType {
     Pause = 3,
     Test = 4,
     Session = 5,
+    // `rename_all` above would run the words together, the wire name has to match the marker tag.
+    #[serde(rename = "static_stimulus")]
+    StaticStimulus = 6,
 }
 
 impl LsL {
@@ -332,6 +338,31 @@ mod tests {
         );
     }
 
+    /// A static trial carries the stimulus payload under its own tag, including its ratings.
+    #[test]
+    fn static_stimulus_marker() {
+        publishes(
+            json!({
+                "type": "static_stimulus",
+                "block": 2,
+                "trial": 4,
+                "speed": "none",
+                "image_id": 1 << 15 | 9,
+                "state": "rating_arousal",
+                "rating": 2,
+            }),
+            json!({
+                "type": "static_stimulus",
+                "block": 2,
+                "trial": 4,
+                "speed": "none",
+                "image_id": { "valence": "High", "arousal": "Low", "index": 9 },
+                "state": "rating_arousal",
+                "rating": 2,
+            }),
+        );
+    }
+
     /// A practice run carries the same payload as a stimulus trial, only the tag tells the two
     /// apart, which is what keeps it out of the real data.
     #[test]
@@ -416,6 +447,7 @@ mod tests {
             (BlockType::Pause, "pause"),
             (BlockType::Test, "test"),
             (BlockType::Session, "session"),
+            (BlockType::StaticStimulus, "static_stimulus"),
         ] {
             let json = format!("\"{name}\"");
             assert_eq!(serde_json::to_string(&block_type).unwrap(), json);

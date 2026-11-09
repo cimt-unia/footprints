@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { LengthState } from "$lib/length_state.js";
-    import { Settings } from "$lib/settings_state.js";
+	import { Blocks, rated_scales } from "$lib/blocks_state.js";
 	import TestRunner from "$routes/experiment/components/TestRunner.svelte";
 	import { Modal } from "@skeletonlabs/skeleton-svelte";
 	import { _ } from "svelte-i18n";
@@ -9,6 +9,9 @@
 	// The instructions are a state of their own rather than a part of the baseline, so that the
 	// baseline marker is stamped when the fixation cross appears and not when this screen opens.
 	const props: ExperimentStateProps = $props();
+
+	// Scales are set per block, the instructions explain every one the run is going to use.
+	const { valence, arousal } = rated_scales(Blocks.current);
 
 	let step = $state(0);
 	let test_open = $state(false);
@@ -22,10 +25,10 @@
 				if (step == 5) {
 					// start exp
 					props.state_machine.send("instructed");
-				} else if (!Settings.current.rating.arousal && !Settings.current.rating.valence && step == 1) {
+				} else if (!arousal && !valence && step == 1) {
 					step += 3;
-				} else if ((!Settings.current.rating.valence && step == 1) ||
-					(!Settings.current.rating.arousal && step == 2)) {
+				} else if ((!valence && step == 1) ||
+					(!arousal && step == 2)) {
 					step += 2;
 				} else {
 					step++;
@@ -40,10 +43,10 @@
 				break;
 			}
 			case "Backspace": {
-				if (!Settings.current.rating.arousal && !Settings.current.rating.valence && step == 4) {
+				if (!arousal && !valence && step == 4) {
 					step -= 3;
-				} else if ((!Settings.current.rating.valence && step == 3) ||
-					(!Settings.current.rating.arousal && step == 4)) {
+				} else if ((!valence && step == 3) ||
+					(!arousal && step == 4)) {
 					step -= 2;
 				} else {
 					step = Math.max(0, --step);

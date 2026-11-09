@@ -1,7 +1,5 @@
 <script lang="ts">
 	import { LengthState } from "$lib/length_state.js";
-	import { BaselineModState } from "$lib/baseline_time_mod.js";
-	import { StimulusModState } from "$lib/stimulus_time_mod.js";
 	import Lightswitch from "./Lightswitch.svelte";
 	import { Settings } from "$lib/settings_state.js";
 	import { invoke } from "@tauri-apps/api/core";
@@ -96,98 +94,6 @@
 						<option value="de"> Deutsch </option>
 						<option value="en"> English </option>
 					</select>
-				</label>
-				<span class="label-text text-lg">Speed variations</span>
-				<label class="flex items-center space-x-2">
-					<input
-						class="checkbox"
-						type="checkbox"
-						bind:checked={Settings.current.very_slow}
-					/>
-					<p>-20%</p>
-				</label>
-				<label class="flex items-center space-x-2">
-					<input
-						class="checkbox"
-						type="checkbox"
-						bind:checked={Settings.current.slow}
-					/>
-					<p>-10%</p>
-				</label>
-				<label class="flex items-center space-x-2">
-					<input
-						class="checkbox"
-						type="checkbox"
-						bind:checked={Settings.current.fast}
-					/>
-					<p>10%</p>
-				</label>
-				<label class="flex items-center space-x-2">
-					<input
-						class="checkbox"
-						type="checkbox"
-						bind:checked={Settings.current.very_fast}
-					/>
-					<p>20%</p>
-				</label>
-				<span class="label-text text-lg">Rating categories</span>
-				<label class="flex items-center space-x-2">
-					<input
-						class="checkbox"
-						type="checkbox"
-						bind:checked={Settings.current.rating.valence}
-					/>
-					<p>Valence</p>
-				</label>
-				<label class="flex items-center space-x-2">
-					<input
-						class="checkbox"
-						type="checkbox"
-						bind:checked={Settings.current.rating.arousal}
-					/>
-					<p>Arousal</p>
-				</label>
-				<span class="label-text text-lg">Baseline</span>
-				<label class="flex items-center space-x-2">
-					<input
-						type="number"
-						class="input"
-						placeholder="Baseline duration"
-						required
-						bind:value={BaselineModState.current.duration}
-					/>
-					<p>Duration</p>
-				</label>
-				<label class="flex items-center space-x-2">
-					<input
-						type="number"
-						class="input"
-						placeholder="Baseline jitter"
-						required
-						bind:value={BaselineModState.current.jitter}
-					/>
-					<p>Jitter</p>
-				</label>
-				<span class="label-text text-lg">Stimulus</span>
-				<label class="flex items-center space-x-2">
-					<input
-						type="number"
-						class="input"
-						placeholder="Stimulus duration"
-						required
-						bind:value={StimulusModState.current.duration}
-					/>
-					<p>Duration</p>
-				</label>
-				<label class="flex items-center space-x-2">
-					<input
-						type="number"
-						class="input"
-						placeholder="Stimulus jitter"
-						required
-						bind:value={StimulusModState.current.jitter}
-					/>
-					<p>Jitter</p>
 				</label>
 			</div>
 		</form>

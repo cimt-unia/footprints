@@ -5,8 +5,13 @@
 	import type { ExperimentStateProps } from "./types.js";
 	import { go_cue } from "$lib/go_cue.js";
 
-	const { state_machine, duration, img_url, cue_target }: ExperimentStateProps =
-		$props();
+	const {
+		state_machine,
+		duration,
+		img_url,
+		cue_target,
+		current_trial,
+	}: ExperimentStateProps = $props();
 
 	let start_go = $derived(state_machine.current !== "stimulus");
 
@@ -31,7 +36,8 @@
 		<div style="w-screen" bind:clientWidth={w}>
 			<Sprite {duration} {state_machine} {w} y={0} {cue_target} />
 		</div>
-	{:else}
+	{:else if current_trial.kind !== "static_stimulus"}
+		<!-- The countdown announces the walk, a static trial has none. -->
 		<div class="flex container m-auto justify-center">
 			<Countdown duration={3} />
 		</div>
