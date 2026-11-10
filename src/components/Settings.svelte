@@ -3,12 +3,15 @@
 	import Lightswitch from "./Lightswitch.svelte";
 	import { Settings } from "$lib/settings_state.js";
 	import { invoke } from "@tauri-apps/api/core";
+	import { getVersion } from "@tauri-apps/api/app";
 	import { SpeedState } from "$lib/speed_state.js";
 	import { locale } from "svelte-i18n";
 
 	let { openState = $bindable() } = $props();
 
 	$inspect(Settings.current);
+
+	const version = getVersion();
 
 	async function calibrate() {
 		await invoke("open_calibration");
@@ -98,6 +101,10 @@
 			</div>
 		</form>
 	</div>
+
+	<p class="mt-auto pt-4 text-center text-sm opacity-60">
+		{#await version then v}Version {v}{/await}
+	</p>
 </div>
 
 {#snippet mark(marker: number)}
