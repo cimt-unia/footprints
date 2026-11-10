@@ -1,14 +1,13 @@
 <script lang="ts">
 	import type { Duration } from "$lib/durations.js";
 	import { go_cue } from "$lib/go_cue.js";
-	import type { MyEvents, MyStates } from "$lib/state_machine.js";
-	import type { FiniteStateMachine } from "runed";
+	import type { ExperimentMachine } from "$lib/state_machine.svelte.js";
 
 	interface Props {
 		w: number;
 		y: number;
 		duration: Duration;
-		state_machine: FiniteStateMachine<MyStates, MyEvents>;
+		state_machine: ExperimentMachine;
 		/** Edge length of the square the triangle is drawn into. */
 		size?: number;
 		color?: string;
