@@ -17,10 +17,15 @@ field that does not apply to a marker is absent.
 ### `session`
 
 The start of a session, published when the instructions open. It belongs to no block and no trial.
+`instructions` records which instruction pages the subject is about to read: the language, the
+page files in the order they are shown, and a SHA-256 digest over their names and contents. Two
+sessions with the same `hash` showed exactly the same pages.
 
 ```json
-{"type":"session"}
+{"type":"session","instructions":{"lang":"de","pages":["01_welcome.md","02_procedure.md"],"hash":"9f2c…"}}
 ```
+
+`instructions` is absent when a session is started without instruction pages.
 
 ### `calibration`
 
@@ -43,7 +48,7 @@ its block. `speed` is the walking condition of the trial, one of `none`, `very_s
 
 `state` runs `baseline` → `stimulus` → `go` → `rating_prompt`, followed by `rating_valence` and
 `rating_arousal` as the subject answers. Those two carry `rating`, the answer on the scale; which
-of them appear depends on the rating settings of the run.
+of them appear depends on the rating settings of the block.
 
 ```json
 {"type":"stimulus","block":1,"trial":3,"speed":"very_fast",
@@ -58,6 +63,18 @@ of them appear depends on the rating settings of the run.
 the quadrant folder sorted by name, counting only `.webp` files, so it moves when the image set
 changes; the trial CSV carries the file name next to it for that reason. `image_id` is `null` if
 the image of the trial failed to load.
+
+### `static_stimulus`
+
+A trial that shows an emotional image without any walking. Same fields as a stimulus trial, but
+`speed` is always `none` and there is no `go`: `state` runs `baseline` → `stimulus` →
+`rating_prompt`, followed by `rating_valence` and `rating_arousal` as the subject answers. With
+both ratings turned off for the block it stops at `rating_prompt`, where the subject only confirms.
+
+```json
+{"type":"static_stimulus","block":2,"trial":4,"speed":"none",
+ "image_id":{"valence":"High","arousal":"Low","index":9},"state":"stimulus"}
+```
 
 ### `neutral`
 

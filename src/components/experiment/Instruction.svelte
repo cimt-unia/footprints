@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { LengthState } from "$lib/length_state.js";
-    import { Settings } from "$lib/settings_state.js";
+	import { render_page } from "$lib/instructions.js";
 	import TestRunner from "$routes/experiment/components/TestRunner.svelte";
 	import { Modal } from "@skeletonlabs/skeleton-svelte";
 	import { _ } from "svelte-i18n";
@@ -10,97 +10,59 @@
 	// baseline marker is stamped when the fixation cross appears and not when this screen opens.
 	const props: ExperimentStateProps = $props();
 
+	// The researcher writes the pages, see `instructions.rs`. The navigation around them is the
+	// app's, so a page cannot break it and every study explains the keys the same way.
+	const pages = (props.instructions?.pages ?? []).map(render_page);
+
 	let step = $state(0);
 	let test_open = $state(false);
 
-	async function onKeyDown(e: KeyboardEvent) {
+	function onKeyDown(e: KeyboardEvent) {
 		if (test_open) {
 			return;
 		}
 		switch (e.key) {
 			case "Enter": {
-				if (step == 5) {
-					// start exp
+				if (step >= pages.length - 1) {
 					props.state_machine.send("instructed");
-				} else if (!Settings.current.rating.arousal && !Settings.current.rating.valence && step == 1) {
-					step += 3;
-				} else if ((!Settings.current.rating.valence && step == 1) ||
-					(!Settings.current.rating.arousal && step == 2)) {
-					step += 2;
 				} else {
 					step++;
 				}
 				break;
 			}
-			case "T":
-			case "t": {
-				if (step == 5) {
-					test_open = true;
-				}
+			case "Backspace": {
+				step = Math.max(0, step - 1);
 				break;
 			}
-			case "Backspace": {
-				if (!Settings.current.rating.arousal && !Settings.current.rating.valence && step == 4) {
-					step -= 3;
-				} else if ((!Settings.current.rating.valence && step == 3) ||
-					(!Settings.current.rating.arousal && step == 4)) {
-					step -= 2;
-				} else {
-					step = Math.max(0, --step);
-				}
+			// A practice run can be useful at any point, e.g. right after the procedure is
+			// explained, so it is not tied to the last page.
+			case "T":
+			case "t": {
+				test_open = true;
 				break;
 			}
 		}
 	}
 </script>
 
-<div class="flex flex-col m-auto max-w-2xl text-xl justify-between">
-	<h1 class="h1 mb-10 mt-10">{$_("instructions.h1")}</h1>
-	{#if step === 0}
-		<b>{$_("instructions.welcome.h2")}</b>
-		<p class="mt-2">{$_("instructions.welcome.p1")}</p>
-		<p class="mt-4">{$_("instructions.welcome.p2")}</p>
-		<p class="mt-4">{$_("instructions.welcome.p3")}</p>
-		<p class="mt-4">{$_("instructions.welcome.p4")}</p>
-	{:else if step === 1}
-		<h2 class="h2">{$_("instructions.general.h2")}</h2>
-
-		<p class="mt-4">{$_("instructions.general.p1")}</p>
-		<p class="mt-4">{@html $_("instructions.general.p2")}</p>
-	{:else if step === 2}
-		<h2 class="h2">{$_("instructions.valence.h2")}</h2>
-
-		<p class="mt-4">{$_("instructions.valence.p1")}</p>
-		<p class="mt-4">{@html $_("instructions.valence.p2")}</p>
-		<p class="mt-4">{$_("instructions.valence.p3")}</p>
-	{:else if step === 3}
-		<h2 class="h2">{$_("instructions.arousal.h2")}</h2>
-
-		<p class="mt-4">{$_("instructions.arousal.p1")}</p>
-		<p class="mt-4">{$_("instructions.arousal.p2")}</p>
-		<p class="mt-4">{$_("instructions.arousal.p3")}</p>
-		<p class="mt-4">{$_("instructions.arousal.p4")}</p>
-	{:else if step === 4}
-		<h2 class="h2">{$_("instructions.procedure.h2")}</h2>
-
-		<h4 class="h4 mt-4">{$_("instructions.procedure.phase_1.h2")}</h4>
-		<p class="mt-4 mb-4">{@html $_("instructions.procedure.phase_1.p1")}</p>
-		<h4 class="h4 mt-4">{$_("instructions.procedure.phase_2.h2")}</h4>
-		<p class="mt-4 mb-4">{@html $_("instructions.procedure.phase_2.p1")}</p>
-		<h4 class="h4">{$_("instructions.procedure.phase_3.h2")}</h4>
-		<p class="mt-4">{@html $_("instructions.procedure.phase_3.p1")}</p>
-		<p class="mt-4 mb-4">{@html $_("instructions.procedure.phase_3.p2")}</p>
-		<h4 class="h4">{$_("instructions.procedure.phase_4.h2")}</h4>
-		<p class="mt-4 mb-4">{@html $_("instructions.procedure.phase_4.p1")}</p>
-	{:else if step === 5}
-		<h4 class="h4">{$_("instructions.trigger.h2")}</h4>
-		<p class="mt-4 mb-4">
-			{$_("instructions.trigger.p1")}
-		</p>
-		<b>
-			{$_("instructions.trigger.b")}
-		</b>
-	{/if}
+<div class="flex flex-col m-auto max-w-2xl min-h-[90vh] text-xl">
+	<article class="instruction-page mt-10 grow">
+		{@html pages[step] ?? ""}
+	</article>
+	<footer class="flex justify-between mt-10 mb-4 text-base opacity-75">
+		<span>
+			{step < pages.length - 1
+				? $_("instructions.nav.next")
+				: $_("instructions.nav.start")}
+			{#if step > 0}
+				· {$_("instructions.nav.back")}
+			{/if}
+			· {$_("instructions.nav.test")}
+		</span>
+		{#if pages.length > 1}
+			<span>{step + 1} / {pages.length}</span>
+		{/if}
+	</footer>
 </div>
 <Modal
 	open={test_open}
@@ -124,3 +86,48 @@
 </Modal>
 
 <svelte:window on:keydown|preventDefault={onKeyDown} />
+
+<style>
+	/* Tailwind's reset strips every element down, the rendered Markdown needs its look back. */
+	.instruction-page :global(h1) {
+		font-size: 2.25rem;
+		font-weight: 700;
+		margin-bottom: 1.5rem;
+	}
+	.instruction-page :global(h2) {
+		font-size: 1.75rem;
+		font-weight: 700;
+		margin: 1.5rem 0 1rem;
+	}
+	.instruction-page :global(h3),
+	.instruction-page :global(h4) {
+		font-size: 1.35rem;
+		font-weight: 600;
+		margin: 1.25rem 0 0.75rem;
+	}
+	.instruction-page :global(p),
+	.instruction-page :global(ul),
+	.instruction-page :global(ol),
+	.instruction-page :global(blockquote) {
+		margin-bottom: 1rem;
+	}
+	.instruction-page :global(ul) {
+		list-style: disc;
+		padding-left: 1.5rem;
+	}
+	.instruction-page :global(ol) {
+		list-style: decimal;
+		padding-left: 1.5rem;
+	}
+	.instruction-page :global(blockquote) {
+		border-left: 4px solid currentColor;
+		padding-left: 1rem;
+		opacity: 0.85;
+	}
+	.instruction-page :global(img) {
+		max-width: 100%;
+	}
+	.instruction-page :global(hr) {
+		margin: 1.5rem 0;
+	}
+</style>

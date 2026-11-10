@@ -2,32 +2,34 @@ import { FiniteStateMachine, PersistedState } from "runed";
 import { eventFromTrial, pauseMarker, publish_event, sessionMarker } from "./lsl.js";
 import { invoke } from "@tauri-apps/api/core";
 import { stimulus_debounce } from "./debounce.js";
-import { StimulusModState } from "./stimulus_time_mod.js";
 import { jittered_duration } from "./jitter.js";
-import type { PlannedTrial } from "./blocks_state.js";
-import { Settings } from "./settings_state.js";
+import { shows_image, type PlannedTrial } from "./blocks_state.js";
 import type { Duration } from "./durations.js";
 import { SpeedState } from "./speed_state.js";
 import { LengthState } from "./length_state.js";
 import type { TrialImages } from "./trial_images.svelte.js";
+import type { InstructionSet } from "./instructions.js";
 export type MyStates = "instruction" | "baseline" | "stimulus" | "go" | "rating" | "confirm" | "pause" | "canceled";
 export type MyEvents = "start" | "s_fin" | "g_fin" | "rated" | "confirmed" | "continued" | "cancel" | "instructed" | "test_finished";
 
 // global reactive variable to track the experiment progress
 export const ExperimentIteration = new PersistedState("ex_iter", 0);
 
+// A phase a trial did not pass through stays absent, the backend reads a missing key as an empty
+// cell but rejects the whole row on an empty string.
 interface Log {
-	baseline_time: string,
-	stimulus_time: string,
-	go_time: string,
-	rating_time: string,
+	baseline_time?: string,
+	stimulus_time?: string,
+	go_time?: string,
+	rating_time?: string,
 }
 
 /**
  * @param mode A test run skips the instructions and stamps every marker as `test`, so a
  * practice run cannot be mistaken for real data in the recording.
+ * @param instructions The pages the instructions show, recorded in the session marker.
  */
-export function create_state_machine(cancel_callback: () => void, plan: PlannedTrial[], durations: Duration[], images: TrialImages, mode: "experiment" | "test" = "experiment"): FiniteStateMachine<MyStates, MyEvents> {
+export function create_state_machine(cancel_callback: () => void, plan: PlannedTrial[], durations: Duration[], images: TrialImages, mode: "experiment" | "test" = "experiment", instructions?: InstructionSet): FiniteStateMachine<MyStates, MyEvents> {
 	const marker_type = mode === "test" ? "test" as const : undefined;
 	// We just created the experiment state machine so we are in the first iteration.
 	ExperimentIteration.current = 0;
@@ -44,11 +46,13 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 		return empty;
 	}
 
-	let log: Log = {
-		baseline_time: "",
-		stimulus_time: "",
-		go_time: "",
-		rating_time: ""
+	let log: Log = {};
+
+	// The screen that closes a trial. Only a trial with an image has something to rate, and only
+	// when its block enables a rating, otherwise the subject just confirms.
+	function response_state(): "rating" | "confirm" {
+		const { kind, settings } = plan[ExperimentIteration.current];
+		return shows_image(kind) && (settings.rating.arousal || settings.rating.valence) ? "rating" : "confirm";
 	}
 
 	// Advances the global trial counter and returns the next state, or ends the experiment.
@@ -75,10 +79,12 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 			...data,
 			baseline_speed: SpeedState.current,
 			modification: duration.kind,
-			effective_speed:
-				((LengthState.current as number) /
+			// A trial without walking has no time budget and so no speed.
+			effective_speed: duration.time > 0
+				? ((LengthState.current as number) /
 					(duration.time / 1000)) *
-				3.6,
+				3.6
+				: undefined,
 			name: images.current?.name,
 			n_valence: images.current?.valence,
 			n_arousal: images.current?.arousal,
@@ -118,7 +124,7 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 			// marker minutes before the fixation cross actually appears.
 			instruction: {
 				_enter: async () => {
-					await publish_event(sessionMarker());
+					await publish_event(sessionMarker(instructions));
 					// Warm the first trial's image so the baseline marker can carry its id
 					// without waiting for the fetch.
 					images.prefetch(0);
@@ -140,7 +146,9 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 			},
 			baseline: {
 				_enter: async () => {
-					log.baseline_time = new Date().toISOString();
+					// Starts from scratch so a trial that skips a phase cannot inherit that
+					// phase's time from the trial before it.
+					log = { baseline_time: new Date().toISOString() };
 					const iteration = ExperimentIteration.current;
 					// Resolves right away, the image was prefetched during the previous trial.
 					// Only then does `images.current` belong to this trial.
@@ -170,10 +178,17 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 						speed: duration.kind,
 						type: marker_type,
 					}));
-					const random = jittered_duration(StimulusModState.current);
+					const random = jittered_duration(trial.settings.stimulus);
 					stimulus_debounce(experiment_state_machine, random * 1000)
 				},
-				s_fin: "go",
+				// A static trial has no walking, the image leads straight to the response.
+				s_fin: () => {
+					const trial = plan[ExperimentIteration.current];
+					if (trial.kind === "static_stimulus") {
+						return response_state();
+					}
+					return "go";
+				},
 				cancel: () => {
 					cancel_callback();
 					return "canceled";
@@ -190,10 +205,8 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 						type: marker_type,
 					}));
 				},
-				// Without a stimulus there is nothing to rate, the subject only confirms.
 				g_fin: () => {
-					return plan[ExperimentIteration.current]?.kind === "stimulus" &&
-						(Settings.current.rating.arousal || Settings.current.rating.valence) ? "rating" : "confirm";
+					return response_state();
 				},
 				cancel: () => {
 					cancel_callback();

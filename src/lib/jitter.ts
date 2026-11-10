@@ -1,7 +1,7 @@
 // Shared by the baseline and stimulus phases: both draw a phase duration from
 // `duration +- jitter`.
 
-interface TimeMod {
+export interface TimeMod {
 	duration: number | "";
 	jitter: number | "";
 }

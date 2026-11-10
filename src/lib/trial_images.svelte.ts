@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { PlannedTrial } from "./blocks_state.js";
+import { shows_image, type PlannedTrial } from "./blocks_state.js";
 
 /** The image as it comes back from the backend, with the webp bytes still raw. */
 interface RawImage {
@@ -102,9 +102,10 @@ export class TrialImages {
 	}
 
 	async #load(iteration: number): Promise<TrialImage | undefined> {
-		// Only stimulus trials show an image; neutral trials (fixation cross) and pauses must
-		// not take an image out of the pool.
-		if (this.#plan[iteration]?.kind !== "stimulus") {
+		// Only stimulus and static stimulus trials show an image; neutral trials (fixation cross)
+		// and pauses must not take an image out of the pool.
+		const trial = this.#plan[iteration];
+		if (!trial || !shows_image(trial.kind)) {
 			return undefined;
 		}
 		await this.#ready;

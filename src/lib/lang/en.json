@@ -1,61 +1,16 @@
 {
-    "instructions": {
-        "h1": "Experiment Description",
-        "welcome": {
-            "h2": "Welcome to our experiment",
-            "p1": "In this experiment, we would like to record biomechanical parameters to describe your gait. For this purpose, we ask you to walk up and down the marked hallway.",
-            "p2": "Each round corresponds to one trial.",
-            "p3": "At the beginning, there is a short preparation phase in which you should look at a fixation cross on the screen. This is followed by the presentation of an image (5 seconds), followed by a start signal indicating that you should start walking.",
-            "p4": "When you reach the end of the path, you will be asked to rate the image according to how it affected you."
-        },
-		"general": {
-			"h2": "General Information",
-			"p1": "Pictures communicate. They depict people, objects, and scenes. In this study, we are interested in how various pictures make people feel.",
-			"p2": "As you answer, please remember:<br /> There are no right or wrong answers. We are interested in your individual opinion. Please do not take too long over any picture. Your first response is as good as any."
-		},
-        "valence": {
-            "h2": "Valence",
-            "p1": "We will ask you to rate a series of pictures in terms of how positive or negative they are. If the picture represents something good or positive, please use the right side of the scale to mark your answer. Positive images are those that represent things that make us happy, satisfied, competent, proud, contented, delighted, and so on. It doesn’t matter what the specific picture is about, as long as it represents something positive or good.",
-            "p2": "If the picture represents something bad or negative, please use the left side of the scale to mark your answer. Negative images are those that represent things that make us unhappy, upset, irritated, angry, sad, depressed, and so on. It doesn’t matter what the specific picture is about, as long as it is something negative or bad.",
-            "p3": "Use the middle of the scale to indicate that the picture makes you feel neutral, that is, that you think that the picture is neither positive nor negative."
-        },
-        "arousal": {
-            "h2": "Arousal",
-            "p1": "We will ask you to rate a series of pictures in terms of the amount of emotion that they evoke. In other words, we would like to know how much emotional intensity the picture creates; whether the picture captures something good or bad doesn’t matter. We are interested only in the degree of excitement, energy, or intensity of feeling it represents.",
-            "p2": "Use the right side of the scale to mark your answer if the picture represents something that is strongly emotional. The words that we might use to describe the emotional state that the picture creates are aroused, alert, activated, charged, or energized.",
-            "p3": "Use the left side of the scale to mark your answer if the picture represents something that is not strongly emotional. The words that we might use to describe the emotional state that the picture creates are unaroused, slow, still, de-energized, calm, or peaceful.",
-            "p4": "Use the middle of the scale to indicate an image that is moderately arousing or halfway through the two extremes."
-        },
-        "procedure": {
-            "h2": "Procedure",
-            "phase_1": {
-                "h2": "Phase 1: Fixation Cross",
-                "p1": "You are standing in <b>the middle</b> of the two screens at the keyboard. You will be shown a fixation cross for a short time; please concentrate on the <b>cross</b>."
-            },
-            "phase_2": {
-                "h2": "Phase 2: Stimulation",
-                "p1": "You will be shown the image for this trial for a short time."
-            },
-            "phase_3": {
-                "h2": "Phase 3: Movement",
-                "p1": "A signal, <b>auditory and visual</b>, will signal you to start walking. The <b>target speed</b> is given to you by a <b>moving pointer</b> on the screen. The <b>speed</b> can <b>vary</b> from trial to trial.",
-                "p2": "Once you have arrived at a <b>marker</b>, shortly before the screens, you have <b>3 seconds to turn around</b>. After these 3 seconds, an <b>audio signal</b>, as well as the pointer, will signal you to <b>start walking</b> again. <br /> This sequence repeats <b>2 times</b>. After the 2nd time, stop in the <b>middle</b>."
-            },
-            "phase_4": {
-                "h2": "Phase 4: Rating",
-                "p1": "You will now be asked for your rating. The <b>scale</b> covers a range from <br /> <b>1-7</b> (1: low/negative, 7: high/positive); use the <b>numbers on the keyboard</b> to rate. To <b>confirm</b> your rating, press <b>Enter</b>. <br /> After rating, the next trial starts with <b>Phase 1</b>."
-            }
-        },
-        "trigger": {
-            "h2": "Trigger Warning",
-            "p1": "Some images may be disturbing to some people (e.g., war, violence, injuries, nudity, or depictions that trigger anxiety in some individuals).",
-            "b": "Ready? Press Enter to start the experiment. Press T for a test run."
-        }
-    },
-    "confirm": {
-        "continue": "Press Enter to continue"
-    },
-    "pause": {
-        "continue": "Break between blocks. Press Enter to continue."
-    }
+	"instructions": {
+		"nav": {
+			"next": "Enter: next page",
+			"start": "Enter: start the study",
+			"back": "Backspace: previous page",
+			"test": "T: practice run"
+		}
+	},
+	"confirm": {
+		"continue": "Press Enter to continue"
+	},
+	"pause": {
+		"continue": "Break between blocks. Press Enter to continue."
+	}
 }

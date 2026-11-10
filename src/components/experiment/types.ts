@@ -1,6 +1,7 @@
 import type { PlannedTrial } from "$lib/blocks_state.js";
 import type { Duration } from "$lib/durations.js";
 import type { MarkerRunKind } from "$lib/lsl.js";
+import type { InstructionSet } from "$lib/instructions.js";
 import type { MyEvents, MyStates } from "$lib/state_machine.js";
 import { FiniteStateMachine } from "runed";
 
@@ -18,4 +19,6 @@ export interface ExperimentStateProps {
 	img_id?: number;
 	/** The element flashed by the visual go cue, see `go_cue`. */
 	cue_target?: HTMLElement;
+	/** The pages the instruction screen shows. Only an experiment has them, a test run does not. */
+	instructions?: InstructionSet;
 }

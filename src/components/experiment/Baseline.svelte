@@ -2,14 +2,13 @@
 	import Countdown from "$components/Countdown.svelte";
 	import { baseline_debounce } from "$lib/debounce.js";
 	import type { ExperimentStateProps } from "./types.js";
-	import { BaselineModState } from "$lib/baseline_time_mod.js";
 	import { jittered_duration } from "$lib/jitter.js";
 	import FixationCross from "./FixationCross.svelte";
 
 	// The baseline is only the fixation cross. The instructions that precede the very first one
 	// are their own state, so that entering this screen lines up with the LsL marker.
-	const { state_machine }: ExperimentStateProps = $props();
-	const random = jittered_duration(BaselineModState.current);
+	const { state_machine, current_trial }: ExperimentStateProps = $props();
+	const random = jittered_duration(current_trial.settings.baseline);
 	baseline_debounce(state_machine, random * 1000);
 </script>
 

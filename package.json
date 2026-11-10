@@ -1,6 +1,6 @@
 {
   "name": "footprint",
-  "version": "0.2.0-3",
+  "version": "0.2.1",
   "description": "",
   "type": "module",
   "scripts": {
@@ -17,6 +17,8 @@
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-log": "~2",
     "@tauri-apps/plugin-opener": "^2",
+    "dompurify": "^3",
+    "marked": "^15",
     "runed": "^0.28.0",
     "svelte-i18n": "^4.0.1"
   },

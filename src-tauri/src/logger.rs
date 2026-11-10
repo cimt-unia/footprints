@@ -146,6 +146,28 @@ mod tests {
         assert!(rating.name.is_none());
     }
 
+    /// A static trial has no go phase and no walking, so those columns stay empty. Pins that the
+    /// row is accepted at all: a rejected `add_rating` drops the trial from the CSV.
+    #[test]
+    fn static_stimulus_row_has_no_walking() {
+        let json = r#"{
+            "block": 1,
+            "trial_in_block": 2,
+            "block_type": "static_stimulus",
+            "baseline_time": "2026-08-21T10:00:00+02:00",
+            "stimulus_time": "2026-08-21T10:00:02+02:00",
+            "rating_time": "2026-08-21T10:00:09+02:00",
+            "baseline_speed": 4.0,
+            "modification": "none",
+            "valence": 3,
+            "arousal": 5
+        }"#;
+        let rating: Rating = serde_json::from_str(json).unwrap();
+        assert_eq!(rating.modification, SpeedModifier::None);
+        assert!(rating.go_time.is_none());
+        assert!(rating.effective_speed.is_none());
+    }
+
     /// The speed reads the same in the log as it does in the marker.
     #[test]
     fn trial_row_speed_matches_the_marker() {
