@@ -17,10 +17,15 @@ field that does not apply to a marker is absent.
 ### `session`
 
 The start of a session, published when the instructions open. It belongs to no block and no trial.
+`instructions` records which instruction pages the subject is about to read: the language, the
+page files in the order they are shown, and a SHA-256 digest over their names and contents. Two
+sessions with the same `hash` showed exactly the same pages.
 
 ```json
-{"type":"session"}
+{"type":"session","instructions":{"lang":"de","pages":["01_welcome.md","02_procedure.md"],"hash":"9f2c…"}}
 ```
+
+`instructions` is absent when a session is started without instruction pages.
 
 ### `calibration`
 
