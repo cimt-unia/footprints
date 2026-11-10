@@ -18,10 +18,13 @@
 	import { Settings } from "$lib/settings_state.js";
 	import { Blocks, build_trial_plan } from "$lib/blocks_state.js";
 	import { balanced_durations } from "$lib/durations.js";
+	import type { InstructionSet } from "$lib/instructions.js";
 
 	interface Experiment {
 		openState: boolean;
 		length: number;
+		/** Loaded right before the start, so the run shows the pages as they are on disk now. */
+		instructions: InstructionSet;
 	}
 
 	let { openState = $bindable(), ...data }: Experiment = $props();
@@ -62,6 +65,8 @@
 		plan,
 		durations,
 		images,
+		"experiment",
+		data.instructions,
 	);
 	// The full screen wrapper the visual go cue flashes.
 	let cue_target: HTMLDivElement | undefined = $state();
@@ -108,6 +113,7 @@
 				img_name={images.current?.name}
 				img_url={images.current?.url}
 				{cue_target}
+				instructions={data.instructions}
 			/>
 		</div>
 	{/if}

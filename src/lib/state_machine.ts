@@ -8,6 +8,7 @@ import type { Duration } from "./durations.js";
 import { SpeedState } from "./speed_state.js";
 import { LengthState } from "./length_state.js";
 import type { TrialImages } from "./trial_images.svelte.js";
+import type { InstructionSet } from "./instructions.js";
 export type MyStates = "instruction" | "baseline" | "stimulus" | "go" | "rating" | "confirm" | "pause" | "canceled";
 export type MyEvents = "start" | "s_fin" | "g_fin" | "rated" | "confirmed" | "continued" | "cancel" | "instructed" | "test_finished";
 
@@ -26,8 +27,9 @@ interface Log {
 /**
  * @param mode A test run skips the instructions and stamps every marker as `test`, so a
  * practice run cannot be mistaken for real data in the recording.
+ * @param instructions The pages the instructions show, recorded in the session marker.
  */
-export function create_state_machine(cancel_callback: () => void, plan: PlannedTrial[], durations: Duration[], images: TrialImages, mode: "experiment" | "test" = "experiment"): FiniteStateMachine<MyStates, MyEvents> {
+export function create_state_machine(cancel_callback: () => void, plan: PlannedTrial[], durations: Duration[], images: TrialImages, mode: "experiment" | "test" = "experiment", instructions?: InstructionSet): FiniteStateMachine<MyStates, MyEvents> {
 	const marker_type = mode === "test" ? "test" as const : undefined;
 	// We just created the experiment state machine so we are in the first iteration.
 	ExperimentIteration.current = 0;
@@ -122,7 +124,7 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 			// marker minutes before the fixation cross actually appears.
 			instruction: {
 				_enter: async () => {
-					await publish_event(sessionMarker());
+					await publish_event(sessionMarker(instructions));
 					// Warm the first trial's image so the baseline marker can carry its id
 					// without waiting for the fetch.
 					images.prefetch(0);

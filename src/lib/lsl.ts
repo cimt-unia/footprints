@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { PlannedTrial } from "./blocks_state.js";
 import type { SpeedKind } from "./durations.js";
+import type { InstructionSet } from "./instructions.js";
 
 /**
  * Which kind of run a trial marker belongs to. A test run draws from the same plan as a real
@@ -37,11 +38,19 @@ interface TrialMarker {
  * packed `image_id` is unpacked into its quadrant before the marker goes out on the stream.
  */
 export type LsLMarker =
-	| { type: "session" }
+	| { type: "session", instructions?: InstructionsShown }
 	| { type: "pause", block: number }
 	| { type: "calibration", step: number } & CalibrationEvent
 	| { type: "neutral" } & TrialMarker & { state: TrialPhase }
 	| { type: MarkerRunKind | "static_stimulus", image_id?: number } & TrialMarker & StimulusEvent;
+
+/** Which instruction pages a session showed, see `InstructionsShown` in `lsl.rs`. */
+export interface InstructionsShown {
+	lang: string;
+	/** The file names, in the order they were shown. */
+	pages: string[];
+	hash: string;
+}
 
 /** Everything about a trial marker that the trial itself does not determine. */
 export interface MarkerDetails {
@@ -121,9 +130,22 @@ export function calibrationMarker(step: number, event: CalibrationEvent): LsLMar
 	return { type: "calibration", step, ...event }
 }
 
-/** Marks the start of a session. It belongs to no block and no trial. */
-export function sessionMarker(): LsLMarker {
-	return { type: "session" }
+/**
+ * Marks the start of a session. It belongs to no block and no trial, but records the
+ * instruction pages the subject is about to read.
+ */
+export function sessionMarker(instructions?: InstructionSet): LsLMarker {
+	if (!instructions) {
+		return { type: "session" }
+	}
+	return {
+		type: "session",
+		instructions: {
+			lang: instructions.lang,
+			pages: instructions.pages.map((page) => page.file),
+			hash: instructions.hash,
+		},
+	}
 }
 
 export async function publish_event(event: LsLMarker) {

@@ -1,5 +1,6 @@
 mod commands;
 mod image_manager;
+mod instructions;
 mod logger;
 mod lsl;
 mod rand;
@@ -7,6 +8,7 @@ mod rand;
 use anyhow::{Context, Result};
 use commands::{get_image, open_calibration, play_sound, publish_lsl, reset_images};
 use image_manager::ImageManager;
+use instructions::load_instructions;
 use logger::{add_rating, init_logger, save_experiment, Logger};
 use lsl::LsLManager;
 use std::sync::Mutex;
@@ -35,7 +37,8 @@ pub fn run() -> Result<()> {
             init_logger,
             add_rating,
             save_experiment,
-            play_sound
+            play_sound,
+            load_instructions
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -44,6 +47,18 @@ pub fn run() -> Result<()> {
             }
         })
         .setup(|app| {
+            let path = app.path().app_local_data_dir()?;
+            println!("{}", path.display());
+            // Not fatal: the same check runs again at study start, and that one is reported to
+            // the experimenter instead of the console.
+            match instructions::study_root(app.handle()) {
+                Ok(root) => {
+                    if let Err(e) = instructions::ensure_default(&root) {
+                        log::error!("Could not create the default instructions: {e}");
+                    }
+                }
+                Err(e) => log::error!("Could not find the study folder: {e}"),
+            }
             if let Err(e) = setup_managed_state(app.handle()) {
                 println!("{:?}", e);
                 app.handle().exit(1);

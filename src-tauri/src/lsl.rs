@@ -26,8 +26,12 @@ pub struct LsL {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum LsLMarker {
-    // The start of a session. It belongs to no block and no trial.
-    Session,
+    // The start of a session. It belongs to no block and no trial. It records which instruction
+    // pages the subject is about to read, those are part of the study and change between runs.
+    Session {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        instructions: Option<InstructionsShown>,
+    },
     // A break between blocks, it has no phases and nothing to record but which block it follows.
     Pause {
         block: u8,
@@ -46,6 +50,15 @@ pub enum LsLMarker {
     // A practice run opened from the instructions. It runs an ordinary stimulus plan, the tag is
     // what keeps a recording from confusing it with real data.
     Test(StimulusTrial),
+}
+
+// Which instruction pages a session showed: the language, the files in order, and a digest
+// over their names and contents, see `instructions::load`.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct InstructionsShown {
+    lang: String,
+    pages: Vec<String>,
+    hash: String,
 }
 
 // A trial that shows an emotional image, with or without walking. The only kind that is rated.
@@ -242,6 +255,20 @@ mod tests {
         publishes(
             json!({ "type": "session" }),
             json!({ "type": "session" }),
+        );
+    }
+
+    /// A session records the instruction pages it showed.
+    #[test]
+    fn session_marker_with_instructions() {
+        let instructions = json!({
+            "lang": "de",
+            "pages": ["01_welcome.md", "03_procedure.md"],
+            "hash": "abc123",
+        });
+        publishes(
+            json!({ "type": "session", "instructions": instructions }),
+            json!({ "type": "session", "instructions": instructions }),
         );
     }
 
