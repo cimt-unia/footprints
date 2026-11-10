@@ -1,10 +1,10 @@
-// We use a custom debounce in favor of the inbuilt state machine debounce so we can cancel
-// the state change when the experiment is stoped so no more lsl events get triggered.
+// The timers live outside the state machine, which only reacts to the events they send. A timer
+// that outlives its phase, e.g. after a cancel, sends an event the machine then ignores.
 
-import { FiniteStateMachine, useDebounce } from "runed";
-import type { MyEvents, MyStates } from "./state_machine.js";
+import { useDebounce } from "runed";
+import type { ExperimentMachine } from "./state_machine.svelte.js";
 
-export const baseline_debounce = (sm: FiniteStateMachine<MyStates, MyEvents>, delay: number) => {
+export const baseline_debounce = (sm: ExperimentMachine, delay: number) => {
 	console.log(delay);
 	useDebounce(
 		() => {
@@ -14,7 +14,7 @@ export const baseline_debounce = (sm: FiniteStateMachine<MyStates, MyEvents>, de
 	)();
 }
 
-export const stimulus_debounce = (sm: FiniteStateMachine<MyStates, MyEvents>, delay: number) => {
+export const stimulus_debounce = (sm: ExperimentMachine, delay: number) => {
 	console.log(delay);
 	useDebounce(
 		() => {

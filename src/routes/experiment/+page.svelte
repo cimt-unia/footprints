@@ -7,7 +7,7 @@
 	import { LengthState } from "$lib/length_state.js";
 	import { Settings } from "$lib/settings_state.js";
     import { invoke } from "@tauri-apps/api/core";
-    import { ExperimentIteration } from "$lib/state_machine.js";
+    import { ExperimentIteration } from "$lib/state_machine.svelte.js";
 	import { Blocks, total_trials } from "$lib/blocks_state.js";
 	import {
 		load_instructions,
