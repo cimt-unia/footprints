@@ -206,7 +206,6 @@ impl LsL {
     fn start(&self) {
         loop {
             let e = self.recv.recv().unwrap();
-            info!("Received Event: {e}");
 
             if let Err(e) = self.event_outlet.push_sample(&[e]) {
                 error!("Error sending lsl packet: {e:?}");
