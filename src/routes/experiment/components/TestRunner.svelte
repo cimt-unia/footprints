@@ -11,7 +11,7 @@
 	import {
 		create_state_machine,
 		ExperimentIteration,
-	} from "$lib/state_machine.js";
+	} from "$lib/state_machine.svelte.js";
 	import { TrialImages } from "$lib/trial_images.svelte.js";
 	import { SpeedState } from "$lib/speed_state.js";
 	import { Settings } from "$lib/settings_state.js";
@@ -41,7 +41,8 @@
 		rating: Rating,
 		confirm: Confirm,
 		pause: Pause,
-		// The canceled state intentionally renders nothing, see `create_state_machine`.
+		// The run is over, both end states intentionally render nothing, see `create_state_machine`.
+		finished: undefined,
 		canceled: undefined,
 	};
 
@@ -81,7 +82,9 @@
 	});
 </script>
 
-{#key State}
+<!-- Keyed on the machine's screen, not the component: two entries in a row on the same screen
+     (two pauses) still remount it, while stimulus and go keep the walking screen. -->
+{#key experiment_state_machine.screen}
 	{#if State}
 		<div
 			class="absolute min-w-screen min-h-screen p-4"
