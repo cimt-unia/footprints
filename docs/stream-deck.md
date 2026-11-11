@@ -57,9 +57,17 @@ the key it stands for (`3` or `Enter`), exactly like typing it.
 
 ## Setup
 
+1. Install the plugin into OpenDeck's plugin folder and restart OpenDeck.
+2. Select the profile **Footprints** for the deck.
+
 The app needs a single OpenDeck page for every state, scale and language: OpenDeck only lets its
-own starterpack plugin switch profiles, so neither the app nor the plugin can pick one. Set the
-**Footprints key** of its buttons:
+own starterpack plugin switch profiles, so neither the app nor the plugin can pick one. The
+plugin creates that page itself for every connected deck that has none, an existing page is
+never overwritten. On a deck seven keys wide or more (Stream Deck XL) the values fill the second
+row under the scale's name and Enter is the last key; smaller decks get them in a row, decks with
+fewer than nine keys get no page.
+
+To set the page up by hand instead, or to change it, these are its buttons:
 
 | button | action | Footprints key |
 |---|---|---|
