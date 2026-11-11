@@ -21,22 +21,32 @@ What the deck shows follows the phase of the run, see `phases` in `state_machine
 | `confirm` | instructions, pause, confirm | `enter` |
 | `rating` | rating | `1` to `7`, `enter` |
 
+The frontend only reports the state, `set_deck_state` in `deck.rs`. The backend fills in the
+texts in the language of the study; they live in the `deck` section of `src/lib/lang/*.json`
+next to the rest of the study's texts.
+
 ## App to plugin
 
-`state` carries the state to show. It is sent right after the plugin connects and again whenever
-the state changes, never twice in a row unchanged.
+`state` carries what to show. It is sent right after the plugin connects and again whenever it
+changes, never twice in a row unchanged.
 
 ```json
 {"type":"state","state":{"kind":"default"}}
-{"type":"state","state":{"kind":"confirm"}}
-{"type":"state","state":{"kind":"rating","scale":"valence","value":4}}
+{"type":"state","state":{"kind":"confirm","enter":"Enter"}}
+{"type":"state","state":{"kind":"rating","scale":"valence","value":4,"title":"Valenz",
+  "labels":["Sehr\nnegativ","Mäßig\nnegativ","Etwas\nnegativ","Neutral",
+            "Etwas\npositiv","Mäßig\npositiv","Sehr\npositiv"],
+  "enter":"Enter"}}
 ```
 
-`scale` is `valence` or `arousal`, `value` the selected rating, 1 to 7.
+`scale` is `valence` or `arousal`, `value` the selected rating, 1 to 7. `title` names the scale,
+`labels` are the anchors of the values 1 to 7, `enter` labels the Enter key. The plugin draws the
+texts as they are and lights the key of `value`; in `default` every key is blank, in `confirm`
+every key but Enter.
 
 ## Plugin to app
 
-`press` reports a key press. `key` is `1` to `7` or `enter`.
+`press` reports a key press. `key` is `1` to `7`, `enter` or `title`.
 
 ```json
 {"type":"press","key":"3"}
@@ -47,6 +57,17 @@ the key it stands for (`3` or `Enter`), exactly like typing it.
 
 ## Setup
 
-In OpenDeck, set the **Footprints key** of each button of the rating profile: `1` to `7` on the
-Toggle State buttons, `enter` on the Reset State button. While the app runs, those buttons show
-what it sends and their presses go to the app instead of typing their keystroke.
+The app needs a single OpenDeck page for every state, scale and language: OpenDeck only lets its
+own starterpack plugin switch profiles, so neither the app nor the plugin can pick one. Set the
+**Footprints key** of its buttons:
+
+| button | action | Footprints key |
+|---|---|---|
+| the scale's name | Reset State, no keystroke | `title` |
+| the seven values | Toggle State | `1` to `7` |
+| Enter | Reset State | `enter` |
+
+Leave their titles empty: OpenDeck draws a title typed into a button over the one the plugin
+sets. While the app runs, these buttons show what it sends and their presses go to the app
+instead of typing their keystroke. Without the app they show `1` to `7` and `Enter` and type
+their keystroke as before.

@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { Settings } from "./settings_state.js";
 
 /**
  * What the Stream Deck shows and which of its keys do anything, see `deck.rs`. Each phase of the
@@ -23,17 +24,20 @@ export interface DeckClaim {
 // newest claim owns the deck; when it is released the one below takes over again, whichever
 // order the two runs' teardowns happen in.
 const claims: { state: DeckState }[] = [];
-let shown = JSON.stringify(DECK_DEFAULT);
+// What the backend was last sent. It starts out showing the default state.
+let shown: string | undefined;
 let unlisten: Promise<UnlistenFn> | undefined;
 
 function sync() {
 	const state = claims.at(-1)?.state ?? DECK_DEFAULT;
-	const json = JSON.stringify(state);
+	// The backend fills in the texts in the study's language, see `deck.rs`.
+	const lang = Settings.current.lang;
+	const json = JSON.stringify({ state, lang });
 	if (json === shown) {
 		return;
 	}
 	shown = json;
-	invoke("set_deck_state", { state }).catch((e) =>
+	invoke("set_deck_state", { state, lang }).catch((e) =>
 		console.error("Could not update the Stream Deck", e),
 	);
 }

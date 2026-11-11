@@ -20,7 +20,14 @@ use tauri::{AppHandle, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<()> {
-    let mut builder = tauri::Builder::default().plugin(tauri_plugin_log::Builder::new().build());
+    let mut builder = tauri::Builder::default().plugin(
+        tauri_plugin_log::Builder::new()
+            // The Stream Deck socket would log every frame at trace level, `deck.rs` logs what
+            // matters itself.
+            .level_for("tungstenite", log::LevelFilter::Warn)
+            .level_for("tokio_tungstenite", log::LevelFilter::Warn)
+            .build(),
+    );
     #[cfg(desktop)]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {

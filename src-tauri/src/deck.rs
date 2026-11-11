@@ -1,9 +1,13 @@
 //! Drives a Stream Deck through an OpenDeck plugin, see `docs/stream-deck.md`.
 //!
-//! The app holds the state the deck should be in and serves it on a local WebSocket. The plugin
-//! connects, draws whatever state it is sent and reports key presses back. A press only counts
-//! if the current state offers that key, so a stray press can never advance the run. Accepted
-//! presses reach the frontend as the key they stand for, the screens handle them like typing.
+//! The frontend reports which state the run needs the deck in, the backend turns it into what
+//! the deck shows, with every text in the language of the study, and serves that on a local
+//! WebSocket. The plugin connects, draws whatever it is sent and reports key presses back. A
+//! press only counts if the current state offers that key, so a stray press can never advance
+//! the run. Accepted presses reach the frontend as the key they stand for, the screens handle
+//! them like typing.
+
+use std::sync::LazyLock;
 
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
@@ -19,12 +23,11 @@ pub const PORT: u16 = 47823;
 /// for (`"1"` to `"7"` or `"Enter"`), as in `KeyboardEvent.key`.
 pub const KEY_EVENT: &str = "deck-key";
 
-/// What the deck shows and which of its keys do anything.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+/// The state the run needs the deck in, as the frontend reports it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum DeckState {
     /// Nothing to press.
-    #[default]
     Default,
     /// Only Enter.
     Confirm,
@@ -39,38 +42,126 @@ pub enum Scale {
     Arousal,
 }
 
+/// The language of the study, `Settings.lang` in the frontend.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Lang {
+    De,
+    En,
+}
+
+/// The deck's texts, the `deck` section of the frontend's lang files. They stay there so every
+/// text of the study is in one place per language.
+#[derive(Debug, Deserialize)]
+struct Texts {
+    enter: String,
+    valence: ScaleTexts,
+    arousal: ScaleTexts,
+}
+
+#[derive(Debug, Deserialize)]
+struct ScaleTexts {
+    title: String,
+    /// The anchors of the values 1 to 7.
+    labels: [String; 7],
+}
+
+fn parse_texts(lang_file: &str) -> Texts {
+    #[derive(Deserialize)]
+    struct LangFile {
+        deck: Texts,
+    }
+    serde_json::from_str::<LangFile>(lang_file)
+        .expect("the lang file has a valid `deck` section")
+        .deck
+}
+
+static DE: LazyLock<Texts> =
+    LazyLock::new(|| parse_texts(include_str!("../../src/lib/lang/de.json")));
+static EN: LazyLock<Texts> =
+    LazyLock::new(|| parse_texts(include_str!("../../src/lib/lang/en.json")));
+
+fn texts(lang: Lang) -> &'static Texts {
+    match lang {
+        Lang::De => &DE,
+        Lang::En => &EN,
+    }
+}
+
+/// What the deck shows, as the plugin receives it: the state with its texts filled in.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum DeckView {
+    #[default]
+    Default,
+    /// Only Enter, labelled `enter`.
+    Confirm { enter: String },
+    /// `title` names the scale, `labels` are the anchors of the values 1 to 7.
+    Rating {
+        scale: Scale,
+        value: u8,
+        title: String,
+        labels: [String; 7],
+        enter: String,
+    },
+}
+
+fn view(state: DeckState, lang: Lang) -> DeckView {
+    let texts = texts(lang);
+    match state {
+        DeckState::Default => DeckView::Default,
+        DeckState::Confirm => DeckView::Confirm {
+            enter: texts.enter.clone(),
+        },
+        DeckState::Rating { scale, value } => {
+            let scale_texts = match scale {
+                Scale::Valence => &texts.valence,
+                Scale::Arousal => &texts.arousal,
+            };
+            DeckView::Rating {
+                scale,
+                value,
+                title: scale_texts.title.clone(),
+                labels: scale_texts.labels.clone(),
+                enter: texts.enter.clone(),
+            }
+        }
+    }
+}
+
 /// App to plugin.
 #[derive(Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 enum Outgoing {
-    State { state: DeckState },
+    State { state: DeckView },
 }
 
 /// Plugin to app.
 #[derive(Debug, PartialEq, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 enum Incoming {
-    /// `key` is `"1"` to `"7"` or `"enter"`.
+    /// `key` is `"1"` to `"7"`, `"enter"` or `"title"`.
     Press { key: String },
 }
 
-/// The deck state, managed by Tauri. Every connection watches it.
+/// What the deck shows, managed by Tauri. Every connection watches it.
 pub struct Deck {
-    state: watch::Sender<DeckState>,
+    view: watch::Sender<DeckView>,
 }
 
 impl Default for Deck {
     fn default() -> Self {
         Self {
-            state: watch::channel(DeckState::default()).0,
+            view: watch::channel(DeckView::default()).0,
         }
     }
 }
 
 impl Deck {
     /// Only an actual change reaches the plugin.
-    pub fn set(&self, next: DeckState) {
-        self.state.send_if_modified(|current| {
+    pub fn set(&self, state: DeckState, lang: Lang) {
+        let next = view(state, lang);
+        self.view.send_if_modified(|current| {
             if *current == next {
                 return false;
             }
@@ -79,16 +170,16 @@ impl Deck {
         });
     }
 
-    fn current(&self) -> DeckState {
-        *self.state.borrow()
+    fn current(&self) -> DeckView {
+        self.view.borrow().clone()
     }
 }
 
-/// The key a press of `key` stands for in `state`, or `None` if the state does not offer it.
-fn keystroke(state: DeckState, key: &str) -> Option<&'static str> {
-    match (state, key) {
-        (DeckState::Confirm | DeckState::Rating { .. }, "enter") => Some("Enter"),
-        (DeckState::Rating { .. }, digit) => match digit {
+/// The key a press of `key` stands for in `view`, or `None` if it does not offer it.
+fn keystroke(view: &DeckView, key: &str) -> Option<&'static str> {
+    match (view, key) {
+        (DeckView::Confirm { .. } | DeckView::Rating { .. }, "enter") => Some("Enter"),
+        (DeckView::Rating { .. }, digit) => match digit {
             "1" => Some("1"),
             "2" => Some("2"),
             "3" => Some("3"),
@@ -103,8 +194,8 @@ fn keystroke(state: DeckState, key: &str) -> Option<&'static str> {
 }
 
 #[tauri::command]
-pub fn set_deck_state(state: DeckState, deck: State<'_, Deck>) {
-    deck.set(state);
+pub fn set_deck_state(state: DeckState, lang: Lang, deck: State<'_, Deck>) {
+    deck.set(state, lang);
 }
 
 /// Starts the server. Without the port the app runs on, only the deck stays dark.
@@ -138,16 +229,16 @@ async fn connection(app: AppHandle, stream: TcpStream) {
     };
     log::info!("Stream Deck plugin connected");
     let (mut outgoing, mut incoming) = ws.split();
-    let mut state = app.state::<Deck>().state.subscribe();
+    let mut view = app.state::<Deck>().view.subscribe();
     // A freshly connected plugin knows nothing yet, it gets the current state right away.
-    state.mark_changed();
+    view.mark_changed();
     loop {
         tokio::select! {
-            changed = state.changed() => {
+            changed = view.changed() => {
                 if changed.is_err() {
                     break;
                 }
-                let state = *state.borrow_and_update();
+                let state = view.borrow_and_update().clone();
                 let message = serde_json::to_string(&Outgoing::State { state })
                     .expect("the deck state serializes");
                 if outgoing.send(Message::text(message)).await.is_err() {
@@ -172,9 +263,11 @@ fn on_message(app: &AppHandle, text: &str) {
             return;
         }
     };
-    let Some(keystroke) = keystroke(app.state::<Deck>().current(), &key) else {
+    let Some(keystroke) = keystroke(&app.state::<Deck>().current(), &key) else {
+        log::info!("Stream Deck press {key:?} ignored, the deck does not offer it right now");
         return;
     };
+    log::info!("Stream Deck press {key:?}");
     if let Err(e) = app.emit(KEY_EVENT, keystroke) {
         log::error!("Could not forward a Stream Deck press: {e}");
     }
@@ -186,38 +279,52 @@ mod tests {
     use serde_json::json;
 
     const RATING: DeckState = DeckState::Rating {
-        scale: Scale::Valence,
+        scale: Scale::Arousal,
         value: 4,
     };
 
     #[test]
-    fn states_serialize_as_documented() {
-        let message = |state| serde_json::to_value(Outgoing::State { state }).unwrap();
-        assert_eq!(
-            message(DeckState::Default),
-            json!({"type": "state", "state": {"kind": "default"}})
-        );
-        assert_eq!(
-            message(DeckState::Confirm),
-            json!({"type": "state", "state": {"kind": "confirm"}})
-        );
-        assert_eq!(
-            message(RATING),
-            json!({"type": "state", "state": {"kind": "rating", "scale": "valence", "value": 4}})
-        );
+    fn both_lang_files_have_the_deck_texts() {
+        assert_eq!(texts(Lang::De).valence.title, "Valenz");
+        assert_eq!(texts(Lang::De).arousal.labels[0], "Sehr\nniedrig");
+        assert_eq!(texts(Lang::En).valence.title, "Valence");
+        assert_eq!(texts(Lang::En).arousal.labels[6], "Very\nhigh");
     }
 
     #[test]
     fn frontend_states_deserialize() {
         let state: DeckState =
-            serde_json::from_value(json!({"kind": "rating", "scale": "arousal", "value": 7}))
+            serde_json::from_value(json!({"kind": "rating", "scale": "arousal", "value": 4}))
                 .unwrap();
+        assert_eq!(state, RATING);
+        let lang: Lang = serde_json::from_value(json!("en")).unwrap();
+        assert_eq!(lang, Lang::En);
+    }
+
+    #[test]
+    fn views_serialize_as_documented() {
+        let message = |state, lang| {
+            serde_json::to_value(Outgoing::State {
+                state: view(state, lang),
+            })
+            .unwrap()
+        };
         assert_eq!(
-            state,
-            DeckState::Rating {
-                scale: Scale::Arousal,
-                value: 7
-            }
+            message(DeckState::Default, Lang::De),
+            json!({"type": "state", "state": {"kind": "default"}})
+        );
+        assert_eq!(
+            message(DeckState::Confirm, Lang::De),
+            json!({"type": "state", "state": {"kind": "confirm", "enter": "Enter"}})
+        );
+        assert_eq!(
+            message(RATING, Lang::De),
+            json!({"type": "state", "state": {
+                "kind": "rating", "scale": "arousal", "value": 4, "title": "Erregung",
+                "labels": ["Sehr\nniedrig", "Mäßig\nniedrig", "Etwas\nniedrig",
+                    "Weder\nniedrig\nnoch\nhoch", "Etwas\nhoch", "Mäßig\nhoch", "Sehr\nhoch"],
+                "enter": "Enter",
+            }})
         );
     }
 
@@ -229,27 +336,38 @@ mod tests {
 
     #[test]
     fn only_offered_keys_count() {
-        assert_eq!(keystroke(DeckState::Default, "enter"), None);
-        assert_eq!(keystroke(DeckState::Default, "3"), None);
-        assert_eq!(keystroke(DeckState::Confirm, "enter"), Some("Enter"));
-        assert_eq!(keystroke(DeckState::Confirm, "3"), None);
-        assert_eq!(keystroke(RATING, "enter"), Some("Enter"));
-        assert_eq!(keystroke(RATING, "1"), Some("1"));
-        assert_eq!(keystroke(RATING, "7"), Some("7"));
-        assert_eq!(keystroke(RATING, "8"), None);
-        assert_eq!(keystroke(RATING, "0"), None);
+        let default = view(DeckState::Default, Lang::De);
+        let confirm = view(DeckState::Confirm, Lang::De);
+        let rating = view(RATING, Lang::De);
+        assert_eq!(keystroke(&default, "enter"), None);
+        assert_eq!(keystroke(&default, "3"), None);
+        assert_eq!(keystroke(&confirm, "enter"), Some("Enter"));
+        assert_eq!(keystroke(&confirm, "3"), None);
+        assert_eq!(keystroke(&rating, "enter"), Some("Enter"));
+        assert_eq!(keystroke(&rating, "1"), Some("1"));
+        assert_eq!(keystroke(&rating, "7"), Some("7"));
+        assert_eq!(keystroke(&rating, "8"), None);
+        assert_eq!(keystroke(&rating, "title"), None);
     }
 
     #[test]
     fn repeated_states_are_not_sent_again() {
         let deck = Deck::default();
-        let mut watcher = deck.state.subscribe();
-        deck.set(DeckState::Default);
+        let mut watcher = deck.view.subscribe();
+        deck.set(DeckState::Default, Lang::De);
         assert!(!watcher.has_changed().unwrap());
-        deck.set(DeckState::Confirm);
+        deck.set(DeckState::Confirm, Lang::De);
         assert!(watcher.has_changed().unwrap());
         watcher.mark_unchanged();
-        deck.set(DeckState::Confirm);
+        deck.set(DeckState::Confirm, Lang::De);
         assert!(!watcher.has_changed().unwrap());
+        // What counts is what the deck shows: both languages label Enter alike...
+        deck.set(DeckState::Confirm, Lang::En);
+        assert!(!watcher.has_changed().unwrap());
+        // ...but not the scales.
+        deck.set(RATING, Lang::De);
+        watcher.mark_unchanged();
+        deck.set(RATING, Lang::En);
+        assert!(watcher.has_changed().unwrap());
     }
 }
