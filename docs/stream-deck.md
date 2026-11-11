@@ -3,7 +3,7 @@
 The app drives a Stream Deck through the OpenDeck plugin `com.cimtunia.resetbutton`
 ([streamdeck-resetbutton-plugin](https://git.rz.uni-augsburg.de/svki-a/streamdeck-resetbutton-plugin)).
 The app decides what the deck shows; the plugin draws it and reports presses. Without the app
-running, the plugin's buttons work on their own as before.
+running, the buttons bound to it are black and do nothing.
 
 | | |
 |---|---|
@@ -69,5 +69,4 @@ own starterpack plugin switch profiles, so neither the app nor the plugin can pi
 
 Leave their titles empty: OpenDeck draws a title typed into a button over the one the plugin
 sets. While the app runs, these buttons show what it sends and their presses go to the app
-instead of typing their keystroke. Without the app they show `1` to `7` and `Enter` and type
-their keystroke as before.
+instead of typing their keystroke. Without the app they are black and do nothing.
