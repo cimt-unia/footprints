@@ -9,6 +9,7 @@ import { SpeedState } from "./speed_state.js";
 import { LengthState } from "./length_state.js";
 import type { TrialImages } from "./trial_images.svelte.js";
 import type { InstructionSet } from "./instructions.js";
+import { claim_deck, DECK_DEFAULT, type DeckState } from "./deck.js";
 
 /** A screen a plan entry passes through. Which ones, and in which order, is up to its block kind. */
 export type Phase = "baseline" | "stimulus" | "go" | "rating" | "confirm" | "pause";
@@ -29,6 +30,12 @@ export interface ExperimentMachine {
 	readonly screen: string;
 	/** Hands an event to the current state and returns the state the run is in afterwards. */
 	send(event: MyEvents, data?: object): MyStates;
+	/**
+	 * Lets a screen update the deck state of its phase, e.g. the rating screen the scale and the
+	 * selected value. It cannot switch the kind: anything else than the kind the phase declared
+	 * is ignored, so a screen still mounted during its out transition cannot pull the deck back.
+	 */
+	refine_deck(state: DeckState): void;
 }
 
 // A phase a trial did not pass through stays absent, the backend reads a missing key as an empty
@@ -53,6 +60,8 @@ interface PhaseSpec {
 	enter(trial: PlannedTrial, iteration: number): Promise<void>;
 	/** Runs once `done` arrives, before the next phase is entered, with what the screen sent along. */
 	finish?(trial: PlannedTrial, iteration: number, data?: object): void;
+	/** What the Stream Deck shows during this phase. Without it the deck offers nothing. */
+	deck?(trial: PlannedTrial): DeckState;
 }
 
 // The screen that closes a trial. Only a trial with an image has something to rate, and only
@@ -99,6 +108,10 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 	ExperimentIteration.current = 0;
 
 	let state: MyStates = $state("instruction");
+	// Held until the run ends, see `end`. A run starts in the instructions, which page on Enter;
+	// a test run has none and starts in its first phase, which sets its own state right away.
+	let deck_state: DeckState = mode === "experiment" ? { kind: "confirm" } : DECK_DEFAULT;
+	const deck = claim_deck(deck_state);
 	// The plan entry the run is on. Kept here rather than read from `ExperimentIteration`: a test
 	// run opened from the instructions moves that shared counter, and must neither shift this run
 	// nor remount the instructions behind it.
@@ -194,9 +207,20 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 				await publish_trial_marker(trial, iteration, "go");
 			},
 		},
-		rating: { done: "rated", enter: enter_response, finish: log_trial },
+		rating: {
+			done: "rated",
+			enter: enter_response,
+			finish: log_trial,
+			// The screen asks for valence first if the block rates it, and starts at the middle
+			// of the scale. It refines this as the subject answers.
+			deck: (trial) => ({
+				kind: "rating",
+				scale: trial.settings.rating.valence ? "valence" : "arousal",
+				value: 4,
+			}),
+		},
 		// Stands in for `rating` on trials without anything to rate.
-		confirm: { done: "confirmed", enter: enter_response, finish: log_trial },
+		confirm: { done: "confirmed", enter: enter_response, finish: log_trial, deck: () => ({ kind: "confirm" }) },
 		// It carries no trial, so it takes no image out of the pool. Reuses the Idle marker until
 		// the marker system is reworked.
 		pause: {
@@ -208,11 +232,19 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 				images.prefetch(iteration + 1);
 			},
 			finish: log_pause,
+			// The experimenter ends the break, also from the deck.
+			deck: () => ({ kind: "confirm" }),
 		},
 	};
 
+	function set_deck(next: DeckState) {
+		deck_state = next;
+		deck.set(next);
+	}
+
 	function enter_phase(phase: Phase) {
 		state = phase;
+		set_deck(phases[phase].deck?.(plan[entry]) ?? DECK_DEFAULT);
 		void phases[phase].enter(plan[entry], entry);
 	}
 
@@ -234,6 +266,7 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 	// which then finds the machine inert.
 	function end(final: "finished" | "canceled") {
 		state = final;
+		deck.release();
 		cancel_callback();
 	}
 
@@ -288,6 +321,12 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 			return `${entry}:${state === "go" ? "stimulus" : state}`;
 		},
 		send,
+		refine_deck(next) {
+			if (state === "finished" || state === "canceled" || next.kind !== deck_state.kind) {
+				return;
+			}
+			set_deck(next);
+		},
 	};
 
 	if (plan.length === 0) {

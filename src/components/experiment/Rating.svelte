@@ -11,6 +11,15 @@
 	let arousal_rating = $state(arousal ? 4 : undefined);
 	let step = $state(valence ? 0 : 1);
 
+	// The deck mirrors the scale being asked and the value selected on it.
+	$effect(() => {
+		props.state_machine.refine_deck({
+			kind: "rating",
+			scale: step === 0 ? "valence" : "arousal",
+			value: (step === 0 ? valence_rating : arousal_rating)!,
+		});
+	});
+
 	async function onKeyDown(e: KeyboardEvent) {
 		switch (e.key) {
 			case "1": {
