@@ -16,6 +16,12 @@ use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager};
 
+struct ExperimentState {
+    // If this is true keyboard inputs get broadcasted to the runner, this enebles rating when the
+    // focus is not on the runner, i.e. when the experimenter made some comments.
+    broadcast: Mutex<bool>,
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<()> {
     let mut builder = tauri::Builder::default().plugin(tauri_plugin_log::Builder::new().build());

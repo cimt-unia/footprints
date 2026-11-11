@@ -20,6 +20,16 @@
         "minWidth": 1280,
         "minHeight": 720
       },
+      {
+		"label": "runner",
+        "title": "footprint runner",
+		"url": "/runner",
+        "width": 1280,
+        "height": 720,
+        "minWidth": 1280,
+        "minHeight": 720,
+		"visible": false
+      },
 	  {
         "label": "calibration",
         "url": "/calibration",
