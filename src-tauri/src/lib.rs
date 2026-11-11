@@ -1,4 +1,5 @@
 mod commands;
+mod deck;
 mod image_manager;
 mod instructions;
 mod logger;
@@ -7,6 +8,7 @@ mod rand;
 
 use anyhow::{Context, Result};
 use commands::{get_image, open_calibration, play_sound, publish_lsl, reset_images};
+use deck::{set_deck_state, Deck};
 use image_manager::ImageManager;
 use instructions::load_instructions;
 use logger::{add_rating, init_logger, save_experiment, Logger};
@@ -38,7 +40,8 @@ pub fn run() -> Result<()> {
             add_rating,
             save_experiment,
             play_sound,
-            load_instructions
+            load_instructions,
+            set_deck_state
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -63,6 +66,7 @@ pub fn run() -> Result<()> {
                 println!("{:?}", e);
                 app.handle().exit(1);
             }
+            deck::serve(app.handle().clone());
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let open_c = MenuItem::with_id(app, "calibration", "Calibration", true, None::<&str>)?;
             let open_i = MenuItem::with_id(app, "open", "Open", true, None::<&str>)?;
@@ -113,5 +117,6 @@ fn setup_managed_state(app: &AppHandle) -> Result<()> {
     std::mem::forget(stream_handle);
     app.manage(sink);
     app.manage(Mutex::new(Logger::default()));
+    app.manage(Deck::default());
     Ok(())
 }
