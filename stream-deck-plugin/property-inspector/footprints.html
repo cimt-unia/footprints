@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { color: #d8d8d8; font: 14px sans-serif; margin: 12px; }
+    label, input { box-sizing: border-box; display: block; width: 100%; }
+    label { margin-bottom: 6px; }
+    input { background: #252525; border: 1px solid #555; color: inherit; padding: 8px; }
+  </style>
+</head>
+<body>
+  <label for="footprints">Footprints key</label>
+  <input id="footprints" placeholder="1–7, enter or title" spellcheck="false">
+  <p>While footprints runs, it shows on this button and gets its presses. Without it, or without a key, the button does nothing.</p>
+  <script>
+    function connectOpenActionSocket(port, propertyInspectorUUID, registerEvent, info, actionInfo) {
+      const socket = new WebSocket(`ws://localhost:${port}`);
+      const footprints = document.getElementById("footprints");
+      const instance = JSON.parse(actionInfo);
+
+      footprints.value = instance.payload.settings.footprints ?? "";
+      socket.addEventListener("open", () => {
+        socket.send(JSON.stringify({ event: registerEvent, uuid: propertyInspectorUUID }));
+      });
+      footprints.addEventListener("input", () => {
+        socket.send(JSON.stringify({
+          event: "setSettings",
+          context: instance.context,
+          payload: { footprints: footprints.value }
+        }));
+      });
+    }
+
+    const connectElgatoStreamDeckSocket = connectOpenActionSocket;
+  </script>
+</body>
+</html>
