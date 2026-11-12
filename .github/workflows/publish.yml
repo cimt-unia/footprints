@@ -85,3 +85,88 @@ jobs:
           releaseDraft: true
           prerelease: ${{ contains(steps.get_version.outputs.APP_VERSION, '-') }}
           args: ${{ matrix.args }}
+
+  # The OpenDeck plugin in stream-deck-plugin/, one binary per platform. Built apart from the app,
+  # so a failing app build does not hold it up; it needs neither bun nor the app's system libraries.
+  build-deck-plugin:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            target: 'aarch64-apple-darwin'
+          - platform: 'macos-latest'
+            target: 'x86_64-apple-darwin'
+          - platform: 'ubuntu-22.04'
+            target: 'x86_64-unknown-linux-gnu'
+          - platform: 'windows-2022'
+            target: 'x86_64-pc-windows-msvc'
+
+    runs-on: ${{ matrix.platform }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: stream-deck-plugin
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
+        with:
+          targets: ${{ matrix.target }}
+          toolchain: 'stable'
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1
+        with:
+          workspaces: './stream-deck-plugin -> target'
+          key: ${{ matrix.target }}
+
+      - name: test (linux only)
+        if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
+        run: |
+          cargo test --locked
+          # The messages the app and the plugin share, pinned to docs/stream-deck.md.
+          cargo test --locked --manifest-path ../deck-protocol/Cargo.toml
+
+      - name: build
+        run: |
+          TARGET=${{ matrix.target }}
+          BINARY=footprints-deck
+          if [[ $TARGET == *windows* ]]; then BINARY=footprints-deck.exe; fi
+          cargo build --release --locked --target "$TARGET"
+          mkdir -p "bin/$TARGET"
+          cp "target/$TARGET/release/$BINARY" "bin/$TARGET/"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: deck-plugin-${{ matrix.target }}
+          path: stream-deck-plugin/bin/
+          if-no-files-found: error
+
+  # Packs the binaries into the zip OpenDeck installs from file and attaches it to the draft
+  # release the app's jobs created.
+  publish-deck-plugin:
+    needs: [publish-tauri, build-deck-plugin]
+    # Like the app, the plugin is released for the platforms that built, so this runs when some
+    # of the app's builds failed too, as long as the release exists.
+    if: ${{ !cancelled() && needs.build-deck-plugin.result != 'skipped' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: deck-plugin-*
+          path: deck-plugin-bin
+          merge-multiple: true
+
+      - name: pack and attach to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
+          stream-deck-plugin/scripts/package.sh deck-plugin-bin footprints-deck.zip
+          gh release upload "footprints-v$VERSION" footprints-deck.zip --clobber

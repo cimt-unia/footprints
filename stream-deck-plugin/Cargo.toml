@@ -1,0 +1,16 @@
+[package]
+name = "footprints-deck"
+version = "1.0.0"
+edition = "2024"
+
+[dependencies]
+log = "0.4"
+openaction = "2.6"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+simplelog = "0.12"
+tokio = { version = "1.48", features = ["full"] }
+futures-util = "0.3"
+tokio-tungstenite = "0.28"
+deck-protocol = { path = "../deck-protocol" }
+

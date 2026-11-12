@@ -1,4 +1,5 @@
-//! Drives a Stream Deck through an OpenDeck plugin, see `docs/stream-deck.md`.
+//! Drives a Stream Deck through an OpenDeck plugin, see `docs/stream-deck.md`. The messages
+//! themselves are in the `deck-protocol` crate, which the plugin builds against too.
 //!
 //! The frontend reports which state the run needs the deck in, the backend turns it into what
 //! the deck shows, with every text in the language of the study, and serves that on a local
@@ -9,15 +10,13 @@
 
 use std::sync::LazyLock;
 
+use deck_protocol::{AppMessage, DeckView, Key, PluginMessage, Scale, PORT};
 use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::watch;
 use tokio_tungstenite::tungstenite::Message;
-
-/// The port the plugin connects to, on `127.0.0.1` only.
-pub const PORT: u16 = 47823;
 
 /// The event an accepted press is emitted as. Its payload is the key name the press stands
 /// for (`"1"` to `"7"` or `"Enter"`), as in `KeyboardEvent.key`.
@@ -33,13 +32,6 @@ pub enum DeckState {
     Confirm,
     /// The 1 to 7 keys of one scale with `value` selected, and Enter to confirm it.
     Rating { scale: Scale, value: u8 },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Scale {
-    Valence,
-    Arousal,
 }
 
 /// The language of the study, `Settings.lang` in the frontend.
@@ -88,24 +80,7 @@ fn texts(lang: Lang) -> &'static Texts {
     }
 }
 
-/// What the deck shows, as the plugin receives it: the state with its texts filled in.
-#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
-enum DeckView {
-    #[default]
-    Default,
-    /// Only Enter, labelled `enter`.
-    Confirm { enter: String },
-    /// `title` names the scale, `labels` are the anchors of the values 1 to 7.
-    Rating {
-        scale: Scale,
-        value: u8,
-        title: String,
-        labels: [String; 7],
-        enter: String,
-    },
-}
-
+/// What the deck shows in `state`: the state with its texts filled in.
 fn view(state: DeckState, lang: Lang) -> DeckView {
     let texts = texts(lang);
     match state {
@@ -127,21 +102,6 @@ fn view(state: DeckState, lang: Lang) -> DeckView {
             }
         }
     }
-}
-
-/// App to plugin.
-#[derive(Serialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-enum Outgoing {
-    State { state: DeckView },
-}
-
-/// Plugin to app.
-#[derive(Debug, PartialEq, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-enum Incoming {
-    /// `key` is `"1"` to `"7"`, `"enter"` or `"title"`.
-    Press { key: String },
 }
 
 /// What the deck shows, managed by Tauri. Every connection watches it.
@@ -175,20 +135,12 @@ impl Deck {
     }
 }
 
-/// The key a press of `key` stands for in `view`, or `None` if it does not offer it.
-fn keystroke(view: &DeckView, key: &str) -> Option<&'static str> {
+/// The key a press of `key` stands for in `view`, as in `KeyboardEvent.key`, or `None` if the
+/// view does not offer it.
+fn keystroke(view: &DeckView, key: Key) -> Option<&'static str> {
     match (view, key) {
-        (DeckView::Confirm { .. } | DeckView::Rating { .. }, "enter") => Some("Enter"),
-        (DeckView::Rating { .. }, digit) => match digit {
-            "1" => Some("1"),
-            "2" => Some("2"),
-            "3" => Some("3"),
-            "4" => Some("4"),
-            "5" => Some("5"),
-            "6" => Some("6"),
-            "7" => Some("7"),
-            _ => None,
-        },
+        (DeckView::Confirm { .. } | DeckView::Rating { .. }, Key::Enter) => Some("Enter"),
+        (DeckView::Rating { .. }, key) if key.number().is_some() => Some(key.as_str()),
         _ => None,
     }
 }
@@ -239,7 +191,7 @@ async fn connection(app: AppHandle, stream: TcpStream) {
                     break;
                 }
                 let state = view.borrow_and_update().clone();
-                let message = serde_json::to_string(&Outgoing::State { state })
+                let message = serde_json::to_string(&AppMessage::State { state })
                     .expect("the deck state serializes");
                 if outgoing.send(Message::text(message)).await.is_err() {
                     break;
@@ -256,14 +208,14 @@ async fn connection(app: AppHandle, stream: TcpStream) {
 }
 
 fn on_message(app: &AppHandle, text: &str) {
-    let Incoming::Press { key } = match serde_json::from_str(text) {
+    let PluginMessage::Press { key } = match serde_json::from_str(text) {
         Ok(message) => message,
         Err(e) => {
             log::warn!("Unknown Stream Deck message {text:?}: {e}");
             return;
         }
     };
-    let Some(keystroke) = keystroke(&app.state::<Deck>().current(), &key) else {
+    let Some(keystroke) = keystroke(&app.state::<Deck>().current(), key) else {
         log::info!("Stream Deck press {key:?} ignored, the deck does not offer it right now");
         return;
     };
@@ -304,7 +256,7 @@ mod tests {
     #[test]
     fn views_serialize_as_documented() {
         let message = |state, lang| {
-            serde_json::to_value(Outgoing::State {
+            serde_json::to_value(AppMessage::State {
                 state: view(state, lang),
             })
             .unwrap()
@@ -329,25 +281,20 @@ mod tests {
     }
 
     #[test]
-    fn presses_parse() {
-        let press: Incoming = serde_json::from_str(r#"{"type":"press","key":"3"}"#).unwrap();
-        assert_eq!(press, Incoming::Press { key: "3".into() });
-    }
-
-    #[test]
     fn only_offered_keys_count() {
         let default = view(DeckState::Default, Lang::De);
         let confirm = view(DeckState::Confirm, Lang::De);
         let rating = view(RATING, Lang::De);
-        assert_eq!(keystroke(&default, "enter"), None);
-        assert_eq!(keystroke(&default, "3"), None);
-        assert_eq!(keystroke(&confirm, "enter"), Some("Enter"));
-        assert_eq!(keystroke(&confirm, "3"), None);
-        assert_eq!(keystroke(&rating, "enter"), Some("Enter"));
-        assert_eq!(keystroke(&rating, "1"), Some("1"));
-        assert_eq!(keystroke(&rating, "7"), Some("7"));
-        assert_eq!(keystroke(&rating, "8"), None);
-        assert_eq!(keystroke(&rating, "title"), None);
+        assert_eq!(keystroke(&default, Key::Enter), None);
+        assert_eq!(keystroke(&default, Key::Three), None);
+        assert_eq!(keystroke(&default, Key::Title), None);
+        assert_eq!(keystroke(&confirm, Key::Enter), Some("Enter"));
+        assert_eq!(keystroke(&confirm, Key::Three), None);
+        assert_eq!(keystroke(&confirm, Key::Title), None);
+        assert_eq!(keystroke(&rating, Key::Enter), Some("Enter"));
+        assert_eq!(keystroke(&rating, Key::One), Some("1"));
+        assert_eq!(keystroke(&rating, Key::Seven), Some("7"));
+        assert_eq!(keystroke(&rating, Key::Title), None);
     }
 
     #[test]
