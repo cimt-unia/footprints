@@ -12,5 +12,32 @@
 	},
 	"pause": {
 		"continue": "Pause zwischen den Blöcken. Enter drücken um fortzufahren."
+	},
+	"deck": {
+		"enter": "Enter",
+		"valence": {
+			"title": "Valenz",
+			"labels": [
+				"Sehr\nnegativ",
+				"Mäßig\nnegativ",
+				"Etwas\nnegativ",
+				"Neutral",
+				"Etwas\npositiv",
+				"Mäßig\npositiv",
+				"Sehr\npositiv"
+			]
+		},
+		"arousal": {
+			"title": "Erregung",
+			"labels": [
+				"Sehr\nniedrig",
+				"Mäßig\nniedrig",
+				"Etwas\nniedrig",
+				"Weder\nniedrig\nnoch\nhoch",
+				"Etwas\nhoch",
+				"Mäßig\nhoch",
+				"Sehr\nhoch"
+			]
+		}
 	}
 }

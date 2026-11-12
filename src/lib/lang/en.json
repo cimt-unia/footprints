@@ -12,5 +12,32 @@
 	},
 	"pause": {
 		"continue": "Break between blocks. Press Enter to continue."
+	},
+	"deck": {
+		"enter": "Enter",
+		"valence": {
+			"title": "Valence",
+			"labels": [
+				"Very\nnegative",
+				"Mode-\nrately\nnegative",
+				"Some-\nwhat\nnegative",
+				"Neutral",
+				"Some-\nwhat\npositive",
+				"Mode-\nrately\npositive",
+				"Very\npositive"
+			]
+		},
+		"arousal": {
+			"title": "Arousal",
+			"labels": [
+				"Very\nlow",
+				"Mode-\nrately\nlow",
+				"Some-\nwhat\nlow",
+				"Neither\nlow nor\nhigh",
+				"Some-\nwhat\nhigh",
+				"Mode-\nrately\nhigh",
+				"Very\nhigh"
+			]
+		}
 	}
 }
