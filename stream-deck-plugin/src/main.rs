@@ -33,7 +33,9 @@ async fn pressed(settings: &KeySettings) {
     if footprints::press(key).await {
         log::info!("Press of footprints key {key} sent to footprints");
     } else {
-        log::info!("Press of footprints key {key} ignored, footprints is not connected");
+        log::info!(
+            "Press of footprints key {key} ignored, footprints is not connected or speaks another protocol"
+        );
     }
 }
 

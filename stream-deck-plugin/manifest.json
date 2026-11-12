@@ -2,7 +2,6 @@
   "Name": "Footprints Deck",
   "Description": "Stream Deck keys for the footprints app (0.3.0 or later)",
   "Author": "Lukas Behammer",
-  "Version": "1.0.0",
   "CodePaths": {
     "x86_64-pc-windows-msvc": "bin/x86_64-pc-windows-msvc/footprints-deck.exe",
     "x86_64-apple-darwin": "bin/x86_64-apple-darwin/footprints-deck",

@@ -10,7 +10,7 @@
 
 use std::sync::LazyLock;
 
-use deck_protocol::{AppMessage, DeckView, Key, PluginMessage, Scale, PORT};
+use deck_protocol::{AppMessage, DeckView, Key, PluginMessage, Scale, PORT, PROTOCOL};
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -181,6 +181,12 @@ async fn connection(app: AppHandle, stream: TcpStream) {
     };
     log::info!("Stream Deck plugin connected");
     let (mut outgoing, mut incoming) = ws.split();
+    // Before anything else, so a plugin speaking another protocol can tell before it reads a state.
+    let hello = AppMessage::Hello { protocol: PROTOCOL };
+    if outgoing.send(Message::text(encode(&hello))).await.is_err() {
+        log::info!("Stream Deck plugin disconnected");
+        return;
+    }
     let mut view = app.state::<Deck>().view.subscribe();
     // A freshly connected plugin knows nothing yet, it gets the current state right away.
     view.mark_changed();
@@ -191,8 +197,7 @@ async fn connection(app: AppHandle, stream: TcpStream) {
                     break;
                 }
                 let state = view.borrow_and_update().clone();
-                let message = serde_json::to_string(&AppMessage::State { state })
-                    .expect("the deck state serializes");
+                let message = encode(&AppMessage::State { state });
                 if outgoing.send(Message::text(message)).await.is_err() {
                     break;
                 }
@@ -205,6 +210,10 @@ async fn connection(app: AppHandle, stream: TcpStream) {
         }
     }
     log::info!("Stream Deck plugin disconnected");
+}
+
+fn encode(message: &AppMessage) -> String {
+    serde_json::to_string(message).expect("an app message serializes")
 }
 
 fn on_message(app: &AppHandle, text: &str) {

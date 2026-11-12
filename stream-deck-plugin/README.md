@@ -15,6 +15,10 @@ OpenDeck/OpenAction plugin that turns a Stream Deck into the input device of the
 The zip has binaries for Linux (x86_64), Windows (x86_64) and macOS (Apple
 silicon and Intel).
 
+The plugin has the version of the footprints release it comes with. If the
+scale's name key says **Update plugin** or **Update footprints**, the two speak
+different protocols: install the plugin from the release of the app you run.
+
 ## Building
 
 ```bash
@@ -24,7 +28,9 @@ scripts/package.sh
 builds the plugin for this machine and packs it into
 `target/footprints-deck-<version>.zip`, ready for **Install from file**. The
 release workflow (`.github/workflows/publish.yml`) builds every platform and
-packs them with the same script.
+packs them with the same script. The zip's manifest gets the version of
+`Cargo.toml`, which `scripts/bump-version.sh` in footprints sets along with the
+app's.
 
 ## How it works
 

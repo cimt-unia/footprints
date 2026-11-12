@@ -6,6 +6,9 @@
 //! from the app, in the language of the study, so one page serves both scales and every language.
 //! Without the app they are black and do nothing.
 //!
+//! The app says which protocol it speaks right after connecting. If it is not this plugin's, the
+//! keys stay off and the scale's name says which of the two to update.
+//!
 //! The protocol is documented in footprints' `docs/stream-deck.md`, its messages are the
 //! `deck-protocol` crate the app builds against too.
 
@@ -14,7 +17,9 @@ use std::sync::LazyLock;
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 
-use deck_protocol::{AppMessage, DeckView, Key, PORT, PluginMessage};
+use deck_protocol::{
+    AppMessage, DeckView, Key, PORT, PROTOCOL, PluginMessage, UNANNOUNCED_PROTOCOL,
+};
 use futures_util::{SinkExt, StreamExt};
 use openaction::{Instance, InstanceId, get_instance};
 use tokio::sync::{Mutex, mpsc};
@@ -64,8 +69,53 @@ impl Look {
     }
 }
 
+/// What the footprints keys show.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[allow(clippy::large_enum_variant)] // There is only ever the one in `LINK`.
+enum Shown {
+    /// Not connected, or nothing received yet: every key is off.
+    #[default]
+    Off,
+    /// What the app sent.
+    View(DeckView),
+    /// The app speaks protocol `app`, not this plugin's. The scale's name says which of the two
+    /// to update, every other key is off and presses are not sent.
+    Mismatch { app: u32 },
+}
+
+/// What a message from the app makes the keys show, or `None` if it changes nothing.
+/// `app_protocol` is the protocol the app speaks, as far as it said so.
+fn receive(app_protocol: &mut u32, message: AppMessage) -> Option<Shown> {
+    match message {
+        AppMessage::Hello { protocol } => {
+            *app_protocol = protocol;
+            (protocol != PROTOCOL).then_some(Shown::Mismatch { app: protocol })
+        }
+        AppMessage::State { state } => Some(if *app_protocol == PROTOCOL {
+            Shown::View(state)
+        } else {
+            Shown::Mismatch { app: *app_protocol }
+        }),
+    }
+}
+
+/// What `key` shows while the keys show `shown`.
+fn look(shown: &Shown, key: Key) -> Look {
+    match (shown, key) {
+        (Shown::Off, _) => Look::off(),
+        (Shown::View(view), key) => view_look(view, key),
+        // An app with a newer protocol than this plugin's needs a newer plugin, an older one
+        // needs updating itself.
+        (Shown::Mismatch { app }, Key::Title) if *app > PROTOCOL => {
+            Look::active("Update\nplugin", false)
+        }
+        (Shown::Mismatch { .. }, Key::Title) => Look::active("Update\nfootprints", false),
+        (Shown::Mismatch { .. }, _) => Look::off(),
+    }
+}
+
 /// What `key` shows in `view`.
-fn look(view: &DeckView, key: Key) -> Look {
+fn view_look(view: &DeckView, key: Key) -> Look {
     match (view, key) {
         (DeckView::Confirm { enter } | DeckView::Rating { enter, .. }, Key::Enter) => {
             Look::active(enter, false)
@@ -101,8 +151,8 @@ struct Tracked {
 struct Link {
     /// Present while connected to the app.
     outgoing: Option<mpsc::UnboundedSender<String>>,
-    /// The last view the app sent, valid while connected.
-    view: Option<DeckView>,
+    /// What the keys show, `Off` while not connected.
+    shown: Shown,
     /// The visible instances bound to a footprints key. The runtime keeps their settings to
     /// itself, so they are recorded as they appear.
     keys: HashMap<InstanceId, Tracked>,
@@ -134,19 +184,18 @@ async fn draw(instance: &Instance, tracked: &mut Tracked, look: Look) {
 /// Records which footprints key an instance is, or that it is none. Call it whenever the
 /// instance appears or its settings change.
 pub async fn track(instance: &Instance, key: Option<Key>) {
-    log::info!("{} appeared as footprints key {key:?}", instance.instance_id);
+    log::info!(
+        "{} appeared as footprints key {key:?}",
+        instance.instance_id
+    );
     let mut link = LINK.lock().await;
     let previous = link.keys.remove(&instance.instance_id);
-    let view = link.view.clone();
     match key {
         Some(key) => {
             // A key that appears may show anything, it is always drawn. Without the app it does
             // nothing, so it is off.
             let mut tracked = Tracked { key, drawn: None };
-            let look = match &view {
-                Some(view) => look(view, key),
-                None => Look::off(),
-            };
+            let look = look(&link.shown, key);
             draw(instance, &mut tracked, look).await;
             link.keys.insert(instance.instance_id.clone(), tracked);
         }
@@ -166,38 +215,35 @@ pub async fn untrack(instance: &Instance) {
     LINK.lock().await.keys.remove(&instance.instance_id);
 }
 
-/// Sends a press of `key` to the app. Returns false when it is not connected.
+/// Sends a press of `key` to the app. Returns false when it is not connected or speaks another
+/// protocol.
 pub async fn press(key: Key) -> bool {
     let link = LINK.lock().await;
     let Some(outgoing) = &link.outgoing else {
         return false;
     };
-    let message =
-        serde_json::to_string(&PluginMessage::Press { key }).expect("a press serializes");
+    if matches!(link.shown, Shown::Mismatch { .. }) {
+        return false;
+    }
+    let message = serde_json::to_string(&PluginMessage::Press { key }).expect("a press serializes");
     outgoing.send(message).is_ok()
 }
 
-async fn apply(view: DeckView) {
+async fn show(shown: Shown) {
     let mut link = LINK.lock().await;
     for (id, tracked) in &mut link.keys {
         if let Some(instance) = get_instance(id.clone()).await {
-            let look = look(&view, tracked.key);
+            let look = look(&shown, tracked.key);
             draw(&instance, tracked, look).await;
         }
     }
-    link.view = Some(view);
+    link.shown = shown;
 }
 
 /// Without the app the footprints keys do nothing, so they all go off.
 async fn disconnected() {
-    let mut link = LINK.lock().await;
-    link.outgoing = None;
-    link.view = None;
-    for (id, tracked) in &mut link.keys {
-        if let Some(instance) = get_instance(id.clone()).await {
-            draw(&instance, tracked, Look::off()).await;
-        }
-    }
+    LINK.lock().await.outgoing = None;
+    show(Shown::Off).await;
 }
 
 /// Keeps connecting to the app for as long as the plugin runs.
@@ -226,6 +272,8 @@ async fn session(
     let (mut write, mut read) = socket.split();
     let (sender, mut presses) = mpsc::unbounded_channel();
     LINK.lock().await.outgoing = Some(sender);
+    // Until the app says otherwise; footprints 0.3.0 never does.
+    let mut app_protocol = UNANNOUNCED_PROTOCOL;
     loop {
         tokio::select! {
             Some(press) = presses.recv() => {
@@ -235,8 +283,19 @@ async fn session(
             }
             message = read.next() => match message {
                 Some(Ok(Message::Text(text))) => match serde_json::from_str(text.as_str()) {
-                    Ok(AppMessage::State { state }) => apply(state).await,
-                    Err(e) => log::warn!("Unknown message from footprints {text:?}: {e}"),
+                    Ok(message) => {
+                        if let AppMessage::Hello { protocol } = message {
+                            log::info!("footprints speaks protocol {protocol}, this plugin {PROTOCOL}");
+                        }
+                        if let Some(shown) = receive(&mut app_protocol, message) {
+                            show(shown).await;
+                        }
+                    }
+                    // An app with another protocol may well send what this plugin cannot read.
+                    Err(e) if app_protocol == PROTOCOL => {
+                        log::warn!("Unknown message from footprints {text:?}: {e}")
+                    }
+                    Err(_) => {}
                 },
                 Some(Ok(Message::Close(_))) | Some(Err(_)) | None => return,
                 Some(Ok(_)) => {}
@@ -271,18 +330,86 @@ mod tests {
     }
 
     #[test]
-    fn looks() {
-        let confirm = DeckView::Confirm {
-            enter: "Weiter".into(),
+    fn a_matching_app_is_shown() {
+        let mut app_protocol = UNANNOUNCED_PROTOCOL;
+        let hello = AppMessage::Hello { protocol: PROTOCOL };
+        assert_eq!(receive(&mut app_protocol, hello), None);
+        let state = AppMessage::State {
+            state: DeckView::Default,
         };
-        let rating = rating(4, ["Sehr\nniedrig", "b", "c", "d", "e", "f", "Sehr\nhoch"]);
-        assert_eq!(look(&DeckView::Default, Key::Enter), Look::off());
-        assert_eq!(look(&DeckView::Default, Key::Four), Look::off());
-        assert_eq!(look(&DeckView::Default, Key::Title), Look::off());
+        assert_eq!(
+            receive(&mut app_protocol, state),
+            Some(Shown::View(DeckView::Default))
+        );
+    }
+
+    #[test]
+    fn an_app_without_hello_speaks_the_first_protocol() {
+        // footprints 0.3.0, which this plugin works with.
+        assert_eq!(UNANNOUNCED_PROTOCOL, PROTOCOL);
+        let mut app_protocol = UNANNOUNCED_PROTOCOL;
+        let state = AppMessage::State {
+            state: DeckView::Default,
+        };
+        assert_eq!(
+            receive(&mut app_protocol, state),
+            Some(Shown::View(DeckView::Default))
+        );
+    }
+
+    #[test]
+    fn an_app_with_another_protocol_is_never_shown() {
+        let mut app_protocol = UNANNOUNCED_PROTOCOL;
+        let hello = AppMessage::Hello {
+            protocol: PROTOCOL + 1,
+        };
+        let mismatch = Shown::Mismatch { app: PROTOCOL + 1 };
+        assert_eq!(receive(&mut app_protocol, hello), Some(mismatch.clone()));
+        let state = AppMessage::State {
+            state: DeckView::Default,
+        };
+        assert_eq!(receive(&mut app_protocol, state), Some(mismatch));
+    }
+
+    #[test]
+    fn a_mismatch_says_what_to_update() {
+        let newer = Shown::Mismatch { app: PROTOCOL + 1 };
+        let older = Shown::Mismatch { app: PROTOCOL - 1 };
+        assert_eq!(
+            look(&newer, Key::Title),
+            Look::active("Update\nplugin", false)
+        );
+        assert_eq!(
+            look(&older, Key::Title),
+            Look::active("Update\nfootprints", false)
+        );
+        for key in Key::VALUES.into_iter().chain([Key::Enter]) {
+            assert_eq!(look(&newer, key), Look::off());
+            assert_eq!(look(&older, key), Look::off());
+        }
+        assert_eq!(look(&Shown::Off, Key::Title), Look::off());
+    }
+
+    #[test]
+    fn looks() {
+        let confirm = Shown::View(DeckView::Confirm {
+            enter: "Weiter".into(),
+        });
+        let rating = Shown::View(rating(
+            4,
+            ["Sehr\nniedrig", "b", "c", "d", "e", "f", "Sehr\nhoch"],
+        ));
+        let default = Shown::View(DeckView::Default);
+        assert_eq!(look(&default, Key::Enter), Look::off());
+        assert_eq!(look(&default, Key::Four), Look::off());
+        assert_eq!(look(&default, Key::Title), Look::off());
         assert_eq!(look(&confirm, Key::Enter), Look::active("Weiter", false));
         assert_eq!(look(&confirm, Key::Four), Look::off());
         assert_eq!(look(&confirm, Key::Title), Look::off());
-        assert_eq!(look(&rating, Key::One), Look::active("Sehr\nniedrig", false));
+        assert_eq!(
+            look(&rating, Key::One),
+            Look::active("Sehr\nniedrig", false)
+        );
         assert_eq!(look(&rating, Key::Four), Look::active("d", true));
         assert_eq!(look(&rating, Key::Seven), Look::active("Sehr\nhoch", false));
         assert_eq!(look(&rating, Key::Title), Look::active("Erregung", false));
@@ -297,7 +424,13 @@ mod tests {
             images(Key::Three, &Look::active("3", false)),
             [(WHITE, Some(0)), (GREEN, Some(1))]
         );
-        assert_eq!(images(Key::Enter, &Look::active("Enter", false)), [(ORANGE, None)]);
-        assert_eq!(images(Key::Title, &Look::active("Valenz", false)), [(BLACK, None)]);
+        assert_eq!(
+            images(Key::Enter, &Look::active("Enter", false)),
+            [(ORANGE, None)]
+        );
+        assert_eq!(
+            images(Key::Title, &Look::active("Valenz", false)),
+            [(BLACK, None)]
+        );
     }
 }

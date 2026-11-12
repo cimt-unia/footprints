@@ -14,11 +14,24 @@ use serde::{Deserialize, Serialize};
 /// The port the app serves the plugin on, on `127.0.0.1` only.
 pub const PORT: u16 = 47823;
 
+/// The version of these messages. It goes up only with a change a plugin built against the
+/// previous one cannot handle, such as a new view kind or a renamed field; a new field old
+/// plugins may ignore needs none. It is not the release version, which goes up every release.
+pub const PROTOCOL: u32 = 1;
+
+/// The protocol of an app that sends no [`AppMessage::Hello`]: footprints 0.3.0, the first
+/// release that drove a deck, spoke version 1 without saying so.
+pub const UNANNOUNCED_PROTOCOL: u32 = 1;
+
 /// App to plugin.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AppMessage {
-    /// What the deck shows. Sent right after the plugin connects and whenever it changes.
+    /// The app's [`PROTOCOL`], sent first on every connection. A plugin that speaks another one
+    /// shows that one of the two needs updating instead of the deck. Its shape never changes, so
+    /// every plugin can read it whatever the protocol.
+    Hello { protocol: u32 },
+    /// What the deck shows. Sent right after the hello and whenever it changes.
     State { state: DeckView },
 }
 
@@ -181,6 +194,14 @@ mod tests {
     }
 
     // The examples of docs/stream-deck.md.
+
+    #[test]
+    fn hello_is_as_documented() {
+        round_trips(
+            AppMessage::Hello { protocol: 1 },
+            json!({"type": "hello", "protocol": 1}),
+        );
+    }
 
     #[test]
     fn states_are_as_documented() {

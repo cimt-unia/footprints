@@ -7,7 +7,8 @@
 # them: BIN_DIR/x86_64-unknown-linux-gnu/footprints-deck,
 # BIN_DIR/x86_64-pc-windows-msvc/footprints-deck.exe, … Without BIN_DIR the plugin is built for
 # this machine only. The packed manifest keeps the platforms that have a binary, so OpenDeck on
-# any other platform says the plugin is unsupported instead of failing to start it.
+# any other platform says the plugin is unsupported instead of failing to start it. It gets the
+# version of Cargo.toml, the release version the app has too (scripts/bump-version.sh sets both).
 #
 # OUT defaults to target/footprints-deck-<version>.zip. Needs cargo (without BIN_DIR), jq and zip.
 set -euo pipefail
@@ -47,8 +48,8 @@ if [[ $present == "[]" ]]; then
     echo "No binary for any platform in the manifest's CodePaths" >&2
     exit 1
 fi
-jq --argjson present "$present" \
-    '.CodePaths |= with_entries(select(.key as $t | $present | index($t)))' \
+jq --argjson present "$present" --arg version "$version" \
+    '.Version = $version | .CodePaths |= with_entries(select(.key as $t | $present | index($t)))' \
     "$root/manifest.json" > "$plugin/manifest.json"
 chmod +x "$plugin"/bin/*/* 2>/dev/null || true
 

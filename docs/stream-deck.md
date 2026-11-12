@@ -31,8 +31,15 @@ next to the rest of the study's texts.
 
 ## App to plugin
 
-`state` carries what to show. It is sent right after the plugin connects and again whenever it
-changes, never twice in a row unchanged.
+`hello` comes first on every connection and names the protocol the app speaks, `PROTOCOL` in
+`deck-protocol`. Its shape never changes, so any plugin can read it.
+
+```json
+{"type":"hello","protocol":1}
+```
+
+`state` carries what to show. It is sent right after the hello and again whenever it changes,
+never twice in a row unchanged.
 
 ```json
 {"type":"state","state":{"kind":"default"}}
@@ -58,6 +65,18 @@ every key but Enter.
 
 The app ignores a press the current state does not offer. An accepted one reaches the screens as
 the key it stands for (`3` or `Enter`), exactly like typing it.
+
+## Versions
+
+The app and the plugin are released together and share the release version, set with
+`scripts/bump-version.sh` and checked by the release workflow.
+
+The protocol has a version of its own, `PROTOCOL` in `deck-protocol`. It goes up only with a
+change a plugin built against the previous one cannot handle, such as a new state kind or a
+renamed field; a field old plugins may ignore needs none. A plugin that gets a `hello` with
+another protocol keeps every key off, ignores presses, and has the scale's name say
+**Update plugin** (the app's protocol is newer) or **Update footprints** (it is older).
+footprints 0.3.0 sends no `hello`; it speaks protocol 1.
 
 ## Setup
 

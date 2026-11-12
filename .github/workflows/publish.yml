@@ -6,7 +6,18 @@ on:
       - release
 
 jobs:
+  # The app and the plugin share the release version. A file left behind by a bump fails the
+  # release here, before anything is built.
+  check-versions:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: every file has the release version
+        run: scripts/check-versions.sh
+
   publish-tauri:
+    needs: check-versions
     permissions:
       contents: write
     strategy:
@@ -18,7 +29,8 @@ jobs:
           - platform: 'macos-latest' # for Intel based macs.
             args: '--target x86_64-apple-darwin'
           - platform: 'ubuntu-22.04'
-            args: ''
+            # No AppImage: bundling it takes most of the Linux build's time.
+            args: '--bundles deb,rpm'
           - platform: 'windows-2022'
             args: ''
 
@@ -89,6 +101,7 @@ jobs:
   # The OpenDeck plugin in stream-deck-plugin/, one binary per platform. Built apart from the app,
   # so a failing app build does not hold it up; it needs neither bun nor the app's system libraries.
   build-deck-plugin:
+    needs: check-versions
     strategy:
       fail-fast: false
       matrix:
