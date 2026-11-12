@@ -1,0 +1,67 @@
+{
+  "Name": "Footprints Deck",
+  "Description": "Stream Deck keys for the footprints app (0.3.0 or later)",
+  "Author": "Lukas Behammer",
+  "CodePaths": {
+    "x86_64-pc-windows-msvc": "bin/x86_64-pc-windows-msvc/footprints-deck.exe",
+    "x86_64-apple-darwin": "bin/x86_64-apple-darwin/footprints-deck",
+    "aarch64-apple-darwin": "bin/aarch64-apple-darwin/footprints-deck",
+    "x86_64-unknown-linux-gnu": "bin/x86_64-unknown-linux-gnu/footprints-deck",
+    "aarch64-unknown-linux-gnu": "bin/aarch64-unknown-linux-gnu/footprints-deck"
+  },
+  "Category": "Footprints",
+  "Icon": "icons/value",
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "10.11"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    },
+    {
+      "Platform": "linux"
+    }
+  ],
+  "Actions": [
+    {
+      "Name": "Key",
+      "UUID": "com.cimtunia.footprints-deck.key",
+      "Tooltip": "A footprints key: the scale's name or Enter.",
+      "PropertyInspectorPath": "property-inspector/footprints.html",
+      "Controllers": ["Keypad"],
+      "SupportedInMultiActions": true,
+      "Icon": "icons/key",
+      "States": [
+        {
+          "Title": "",
+          "ShowTitle": true,
+          "TitleAlignment": "middle"
+        }
+      ]
+    },
+    {
+      "Name": "Value",
+      "UUID": "com.cimtunia.footprints-deck.value",
+      "Tooltip": "A footprints key that can be lit: one of the seven values.",
+      "PropertyInspectorPath": "property-inspector/footprints.html",
+      "Controllers": ["Keypad"],
+      "DisableAutomaticStates": true,
+      "SupportedInMultiActions": true,
+      "Icon": "icons/value",
+      "States": [
+        {
+          "Title": "",
+          "ShowTitle": true,
+          "TitleAlignment": "middle"
+        },
+        {
+          "Title": "",
+          "ShowTitle": true,
+          "TitleAlignment": "middle"
+        }
+      ]
+    }
+  ]
+}

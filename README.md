@@ -208,6 +208,9 @@ cargo test --manifest-path src-tauri/Cargo.toml
 - Write commit messages in the [Conventional Commits](https://www.conventionalcommits.org) style
   used so far: `feat: …`, `fix: …`, `chore: …`, `ci: …`.
 - Run `bun run check` and `cargo test` before opening a PR.
+- For a release, set the version with `scripts/bump-version.sh 0.4.0` and commit it as
+  `chore: version 0.4.0`. It sets the app's and the Stream Deck plugin's version together; the
+  release workflow refuses to build if a file was left behind.
 - The LSL markers and the CSV columns are what researchers analyse, so treat them as a public
   interface. If you change either, update [docs/marker-protocol.md](docs/marker-protocol.md) and
   the tests in `src-tauri/src/lsl.rs` and `src-tauri/src/logger.rs`, and say so in the PR.
