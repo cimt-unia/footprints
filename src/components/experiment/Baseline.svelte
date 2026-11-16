@@ -10,12 +10,16 @@
 	const { state_machine, current_trial }: ExperimentStateProps = $props();
 	const random = jittered_duration(current_trial.settings.baseline);
 	baseline_debounce(state_machine, random * 1000);
+
+	// A neutral trial's cross sits where the walking screen draws it, which leaves room below
+	// for the speed indicator. Moving it when the walk starts reads to subjects like the go signal.
+	const neutral = current_trial.kind === "neutral";
 </script>
 
-<div class="fixation-cross-container">
+<div class="fixation-cross-container" class:neutral>
 	<FixationCross />
 </div>
-<div class="flex mt-5 container m-auto justify-center">
+<div class="flex container m-auto justify-center" class:mt-5={!neutral}>
 	<Countdown duration={2} />
 </div>
 
@@ -30,5 +34,11 @@
 		position: relative; /* Or relative, depending on your layout */
 		margin-top: 8vh;
 		left: 10%;
+	}
+
+	/* Exactly the walking screen's layout, see `Ongoing.svelte`. */
+	.fixation-cross-container.neutral {
+		margin-top: 0;
+		top: 5%;
 	}
 </style>
