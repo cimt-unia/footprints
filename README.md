@@ -24,6 +24,8 @@ freely in one session.
 | `static_stimulus` | Trials: fixation cross → image → rating |
 | `stimulus` | Trials: fixation cross → image → paced walk → rating |
 | `neutral` | Trials: fixation cross → fixation cross in place of the image → paced walk → "press Enter" |
+| `eyes_open` | One resting state EEG recording, the subject looks at a fixation cross |
+| `eyes_closed` | One resting state EEG recording with the eyes closed, a tone marks the end |
 | `pause` | No trials, one break screen until the experimenter presses Enter |
 
 ### `static_stimulus`
@@ -55,6 +57,15 @@ to rate, the trial ends with a "press Enter to continue" screen.
 
 Settings: number of trials, the speed variations, and the durations of both fixation-cross phases
 (the baseline and the one in place of the image).
+
+### `eyes_open` and `eyes_closed`
+
+A resting state EEG recording. An instruction screen tells the subject what to do and waits for
+the experimenter to press Enter, then the recording runs for the configured time: with the eyes
+on a fixation cross. With the eyes closed the screen stays the same, and a tone tells the subject
+to open them again. The next block follows right away, put a `pause` after it to wait instead.
+
+Settings: the recording length in seconds.
 
 ### `pause`
 

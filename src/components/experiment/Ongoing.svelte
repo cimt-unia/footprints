@@ -36,7 +36,7 @@
 		<div style="w-screen" bind:clientWidth={w}>
 			<Sprite {duration} {state_machine} {w} y={0} {cue_target} />
 		</div>
-	{:else if current_trial.kind !== "static_stimulus"}
+	{:else if current_trial.block.kind !== "static_stimulus"}
 		<!-- The countdown announces the walk, a static trial has none. -->
 		<div class="flex container m-auto justify-center">
 			<Countdown duration={3} />

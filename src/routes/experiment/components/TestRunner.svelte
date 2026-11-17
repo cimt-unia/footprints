@@ -3,6 +3,8 @@
 	import Rating from "$components/experiment/Rating.svelte";
 	import Confirm from "$components/experiment/Confirm.svelte";
 	import Pause from "$components/experiment/Pause.svelte";
+	import EegInstruction from "$components/experiment/EegInstruction.svelte";
+	import Eeg from "$components/experiment/Eeg.svelte";
 	import { invoke } from "@tauri-apps/api/core";
 	import { onDestroy } from "svelte";
 	import Baseline from "$components/experiment/Baseline.svelte";
@@ -41,6 +43,8 @@
 		rating: Rating,
 		confirm: Confirm,
 		pause: Pause,
+		eeg_instruction: EegInstruction,
+		eeg: Eeg,
 		// The run is over, both end states intentionally render nothing, see `create_state_machine`.
 		finished: undefined,
 		canceled: undefined,
