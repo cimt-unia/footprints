@@ -18,12 +18,13 @@
 	} else if (current_trial.block.kind === "eyes_open") {
 		eeg_debounce(state_machine, current_trial.block.duration_s * 1000);
 	}
+	const neutral = current_trial.block.kind === "neutral";
 </script>
 
-<div class="fixation-cross-container">
+<div class="fixation-cross-container" class:neutral>
 	<FixationCross />
 </div>
-<div class="flex mt-5 container m-auto justify-center">
+<div class="flex container m-auto justify-center" class:mt-5={!neutral}>
 	<Countdown duration={2} />
 </div>
 
@@ -38,5 +39,11 @@
 		position: relative; /* Or relative, depending on your layout */
 		margin-top: 8vh;
 		left: 10%;
+	}
+
+	/* Exactly the walking screen's layout, see `Ongoing.svelte`. */
+	.fixation-cross-container.neutral {
+		margin-top: 0;
+		top: 5%;
 	}
 </style>
