@@ -105,7 +105,7 @@ export class TrialImages {
 		// Only stimulus and static stimulus trials show an image; neutral trials (fixation cross)
 		// and pauses must not take an image out of the pool.
 		const trial = this.#plan[iteration];
-		if (!trial || !shows_image(trial.kind)) {
+		if (!trial || !shows_image(trial.block.kind)) {
 			return undefined;
 		}
 		await this.#ready;

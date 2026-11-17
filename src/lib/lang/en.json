@@ -13,6 +13,14 @@
 	"pause": {
 		"continue": "Break between blocks. Press Enter to continue."
 	},
+	"eeg": {
+		"eyes_open": {
+			"instruction": "Please keep your eyes open and look at the cross until the screen changes. Try to relax and move as little as possible."
+		},
+		"eyes_closed": {
+			"instruction": "Please close your eyes when the recording starts and keep them closed until you hear a tone. Try to relax and move as little as possible."
+		}
+	},
 	"deck": {
 		"enter": "Enter",
 		"valence": {

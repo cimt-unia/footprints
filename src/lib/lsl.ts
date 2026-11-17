@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { PlannedTrial } from "./blocks_state.js";
+import { eeg_duration, type EegBlock, type EegKind, type PlannedTrial } from "./blocks_state.js";
 import type { SpeedKind } from "./durations.js";
 import type { InstructionSet } from "./instructions.js";
 
@@ -17,6 +17,14 @@ export type StimulusEvent =
 	| { state: TrialPhase }
 	| { state: "rating_valence", rating: number }
 	| { state: "rating_arousal", rating: number };
+
+/**
+ * The moment of a resting state EEG recording. `start` carries how long the recording is set to
+ * run, `end` is stamped once that time is over.
+ */
+export type EegEvent =
+	| { state: "instruction" | "end" }
+	| { state: "start", duration_s: number };
 
 /** The moment inside a calibration step. Only the result carries the calibrated speed. */
 export type CalibrationEvent =
@@ -42,6 +50,7 @@ export type LsLMarker =
 	| { type: "pause", block: number }
 	| { type: "calibration", step: number } & CalibrationEvent
 	| { type: "neutral" } & TrialMarker & { state: TrialPhase }
+	| { type: EegKind, block: number } & EegEvent
 	| { type: MarkerRunKind | "static_stimulus", image_id?: number } & TrialMarker & StimulusEvent;
 
 /** Which instruction pages a session showed, see `InstructionsShown` in `lsl.rs`. */
@@ -70,24 +79,28 @@ function image_trial_type(trial: PlannedTrial, details: MarkerDetails): MarkerRu
 	if (details.type) {
 		return details.type;
 	}
-	return trial.kind === "static_stimulus" ? "static_stimulus" : "stimulus";
+	return trial.block.kind === "static_stimulus" ? "static_stimulus" : "stimulus";
 }
 
 /** A marker for one trial of the plan, for the phases that carry no data. */
 export function eventFromTrial(trial: PlannedTrial, phase: TrialPhase, details: MarkerDetails = {}): LsLMarker {
-	if (trial.kind === "pause") {
+	if (trial.block.kind === "pause") {
 		return pauseMarker(trial);
+	}
+	if (trial.block.kind === "eyes_open" || trial.block.kind === "eyes_closed") {
+		// It has no trial phases, see `eegMarker`.
+		throw new Error("An EEG block publishes `eegMarker`, not trial markers");
 	}
 
 	const common = {
-		block: trial.block + 1,
+		block: trial.block_nr + 1,
 		trial: trial.trial_in_block + 1,
 		speed: details.speed ?? "none",
 		state: phase
 	} satisfies TrialMarker & { state: TrialPhase };
 
 	// A neutral trial shows a fixation cross, it has no image and is never rated.
-	if (trial.kind === "neutral") {
+	if (trial.block.kind === "neutral") {
 		return { type: "neutral", ...common };
 	}
 
@@ -109,7 +122,7 @@ export function ratingMarker(
 ): LsLMarker {
 	return {
 		type: image_trial_type(trial, details),
-		block: trial.block + 1,
+		block: trial.block_nr + 1,
 		trial: trial.trial_in_block + 1,
 		speed: details.speed ?? "none",
 		image_id: details.image_id,
@@ -119,7 +132,19 @@ export function ratingMarker(
 
 /** A break between blocks. It has no phases, no walking and nothing to rate. */
 export function pauseMarker(trial: PlannedTrial): LsLMarker {
-	return { type: "pause", block: trial.block + 1 }
+	return { type: "pause", block: trial.block_nr + 1 }
+}
+
+/**
+ * A moment of a resting state EEG recording. The block is a single recording, so it has no
+ * trial, no walking and nothing to rate.
+ */
+export function eegMarker(trial: PlannedTrial & { block: EegBlock }, state: EegEvent["state"]): LsLMarker {
+	const marker = { type: trial.block.kind, block: trial.block_nr + 1 };
+	if (state === "start") {
+		return { ...marker, state, duration_s: eeg_duration(trial.block) };
+	}
+	return { ...marker, state };
 }
 
 /**

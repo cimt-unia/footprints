@@ -146,6 +146,18 @@ mod tests {
         assert!(rating.name.is_none());
     }
 
+    /// An EEG recording logs a row like a pause, its timing is in the markers.
+    #[test]
+    fn eeg_row_needs_only_its_position() {
+        for kind in ["eyes_open", "eyes_closed"] {
+            let json = format!(
+                r#"{{"block": 1, "trial_in_block": 1, "block_type": "{kind}", "modification": "none"}}"#
+            );
+            let rating: Rating = serde_json::from_str(&json).unwrap();
+            assert!(rating.baseline_time.is_none());
+        }
+    }
+
     /// A static trial has no go phase and no walking, so those columns stay empty. Pins that the
     /// row is accepted at all: a rejected `add_rating` drops the trial from the CSV.
     #[test]

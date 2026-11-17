@@ -1,9 +1,9 @@
 import { PersistedState } from "runed";
-import { eventFromTrial, pauseMarker, publish_event, sessionMarker, type TrialPhase } from "./lsl.js";
+import { eegMarker, eventFromTrial, pauseMarker, publish_event, sessionMarker, type TrialPhase } from "./lsl.js";
 import { invoke } from "@tauri-apps/api/core";
-import { stimulus_debounce } from "./debounce.js";
+import { eeg_debounce, stimulus_debounce } from "./debounce.js";
 import { jittered_duration } from "./jitter.js";
-import { shows_image, type BlockKind, type PlannedTrial } from "./blocks_state.js";
+import { eeg_duration, eeg_entry, shows_image, trial_settings, type BlockKind, type PlannedTrial } from "./blocks_state.js";
 import type { Duration } from "./durations.js";
 import { SpeedState } from "./speed_state.js";
 import { LengthState } from "./length_state.js";
@@ -12,9 +12,9 @@ import type { InstructionSet } from "./instructions.js";
 import { claim_deck, DECK_DEFAULT, type DeckState } from "./deck.js";
 
 /** A screen a plan entry passes through. Which ones, and in which order, is up to its block kind. */
-export type Phase = "baseline" | "stimulus" | "go" | "rating" | "confirm" | "pause";
+export type Phase = "baseline" | "stimulus" | "go" | "rating" | "confirm" | "pause" | "eeg_instruction" | "eeg";
 export type MyStates = "instruction" | Phase | "finished" | "canceled";
-export type MyEvents = "start" | "s_fin" | "g_fin" | "rated" | "confirmed" | "continued" | "cancel" | "instructed" | "test_finished";
+export type MyEvents = "start" | "s_fin" | "g_fin" | "rated" | "confirmed" | "continued" | "cancel" | "instructed" | "test_finished" | "eeg_fin";
 
 // global reactive variable to track the experiment progress
 export const ExperimentIteration = new PersistedState("ex_iter", 0);
@@ -67,8 +67,8 @@ interface PhaseSpec {
 // The screen that closes a trial. Only a trial with an image has something to rate, and only
 // when its block enables a rating, otherwise the subject just confirms.
 function response_phase(trial: PlannedTrial): "rating" | "confirm" {
-	const { kind, settings } = trial;
-	return shows_image(kind) && (settings.rating.arousal || settings.rating.valence) ? "rating" : "confirm";
+	const settings = trial_settings(trial);
+	return shows_image(trial.block.kind) && (settings.rating.arousal || settings.rating.valence) ? "rating" : "confirm";
 }
 
 /**
@@ -81,6 +81,9 @@ const flows: Record<BlockKind, (trial: PlannedTrial) => Phase[]> = {
 	neutral: (trial) => ["baseline", "stimulus", "go", response_phase(trial)],
 	// No walking, the image leads straight to the response.
 	static_stimulus: (trial) => ["baseline", "stimulus", response_phase(trial)],
+	// A single recording, started by the experimenter once the subject has read what to do.
+	eyes_open: () => ["eeg_instruction", "eeg"],
+	eyes_closed: () => ["eeg_instruction", "eeg"],
 	// A break between blocks, it only waits for the experimenter to continue.
 	pause: () => ["pause"],
 };
@@ -154,22 +157,23 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 			name: images.current?.name,
 			n_valence: images.current?.valence,
 			n_arousal: images.current?.arousal,
-			block: trial.block + 1,
+			block: trial.block_nr + 1,
 			trial_in_block: trial.trial_in_block + 1,
-			block_type: trial.kind,
+			block_type: trial.block.kind,
 		};
 		console.log(x);
 		invoke("add_rating", { rating: x });
 	}
 
-	// A pause carries nothing but its position in the plan. Logging it keeps the CSV a complete
-	// record of the run, the columns a trial fills are left empty.
-	function log_pause(trial: PlannedTrial) {
+	// A pause or an EEG recording carries nothing but its position in the plan. Logging it keeps
+	// the CSV a complete record of the run, the columns a trial fills are left empty. The timing
+	// of a recording is in its LsL markers.
+	function log_position(trial: PlannedTrial) {
 		invoke("add_rating", {
 			rating: {
-				block: trial.block + 1,
+				block: trial.block_nr + 1,
 				trial_in_block: trial.trial_in_block + 1,
-				block_type: trial.kind,
+				block_type: trial.block.kind,
 				modification: "none",
 			},
 		});
@@ -196,7 +200,7 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 			enter: async (trial, iteration) => {
 				log.stimulus_time = new Date().toISOString();
 				await publish_trial_marker(trial, iteration, "stimulus");
-				const random = jittered_duration(trial.settings.stimulus);
+				const random = jittered_duration(trial_settings(trial).stimulus);
 				stimulus_debounce(machine, random * 1000);
 			},
 		},
@@ -215,12 +219,44 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 			// of the scale. It refines this as the subject answers.
 			deck: (trial) => ({
 				kind: "rating",
-				scale: trial.settings.rating.valence ? "valence" : "arousal",
+				scale: trial_settings(trial).rating.valence ? "valence" : "arousal",
 				value: 4,
 			}),
 		},
 		// Stands in for `rating` on trials without anything to rate.
 		confirm: { done: "confirmed", enter: enter_response, finish: log_trial, deck: () => ({ kind: "confirm" }) },
+		// Tells the subject what the recording asks of them. It waits for Enter, so the recording
+		// only starts once the subject has settled.
+		eeg_instruction: {
+			done: "confirmed",
+			enter: async (trial, iteration) => {
+				// A recording shows no image; promoting clears the one from the trial before it.
+				await images.promote(iteration);
+				await publish_event(eegMarker(eeg_entry(trial), "instruction"));
+				images.prefetch(iteration + 1);
+			},
+			deck: () => ({ kind: "confirm" }),
+		},
+		// The recording itself. The timer starts once the start marker is out, so the marker and
+		// the configured length bracket the recording.
+		eeg: {
+			done: "eeg_fin",
+			enter: async (trial) => {
+				const eeg = eeg_entry(trial);
+				await publish_event(eegMarker(eeg, "start"));
+				eeg_debounce(machine, eeg_duration(eeg.block) * 1000);
+			},
+			finish: (trial) => {
+				const eeg = eeg_entry(trial);
+				void publish_event(eegMarker(eeg, "end"));
+				// A subject with closed eyes cannot see the recording end. The tone plays
+				// whatever the cue settings say, those are about the walking.
+				if (eeg.block.kind === "eyes_closed") {
+					invoke("play_sound");
+				}
+				log_position(trial);
+			},
+		},
 		// It carries no trial, so it takes no image out of the pool. Reuses the Idle marker until
 		// the marker system is reworked.
 		pause: {
@@ -231,7 +267,7 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 				await publish_event(pauseMarker(trial));
 				images.prefetch(iteration + 1);
 			},
-			finish: log_pause,
+			finish: log_position,
 			// The experimenter ends the break, also from the deck.
 			deck: () => ({ kind: "confirm" }),
 		},
@@ -257,7 +293,7 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 		}
 		entry = index;
 		ExperimentIteration.current = index;
-		flow = flows[plan[index].kind](plan[index]);
+		flow = flows[plan[index].block.kind](plan[index]);
 		step = 0;
 		enter_phase(flow[0]);
 	}

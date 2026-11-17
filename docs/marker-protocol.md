@@ -85,6 +85,23 @@ the image, and it is never rated: it stops at `rating_prompt`, where the subject
 {"type":"neutral","block":2,"trial":5,"speed":"slow","state":"go"}
 ```
 
+### `eyes_open` and `eyes_closed`
+
+A resting state EEG recording, with the eyes on a fixation cross or closed. The block is a single
+recording, so there is no `trial`, no `speed` and nothing to rate, only the 1 based `block`.
+
+`state` runs `instruction` → `start` → `end`. `instruction` is stamped when the subject is told
+what to do, `start` when the experimenter starts the recording with Enter, and `end` once the
+configured length is over. `start` carries that length as `duration_s`. With the eyes closed a
+tone tells the subject to open them again at `end`.
+
+```json
+{"type":"eyes_closed","block":1,"state":"start","duration_s":60}
+{"type":"eyes_closed","block":1,"state":"end"}
+```
+
+A recording canceled before its time is over has no `end`.
+
 ### `pause`
 
 A break between blocks. It has no phases, no walking and nothing to rate, only the 1 based index
