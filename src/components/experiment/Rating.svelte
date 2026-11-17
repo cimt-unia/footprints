@@ -1,11 +1,12 @@
 <script lang="ts">
 	import type { ExperimentStateProps } from "./types.js";
 	import { publish_event, ratingMarker } from "$lib/lsl.js";
+	import { trial_settings } from "$lib/blocks_state.js";
 
 	const props: ExperimentStateProps = $props();
 
 	// The scales of this trial's block, it is settled for as long as this screen is up.
-	const { valence, arousal } = props.current_trial.block.settings.rating;
+	const { valence, arousal } = trial_settings(props.current_trial).rating;
 
 	let valence_rating = $state(valence ? 4 : undefined);
 	let arousal_rating = $state(arousal ? 4 : undefined);

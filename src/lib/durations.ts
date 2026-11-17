@@ -1,4 +1,4 @@
-import type { PlannedTrial, SpeedVariations } from "./blocks_state.js";
+import { is_trial_block, type PlannedTrial, type SpeedVariations } from "./blocks_state.js";
 
 /**
  * A trial's walking condition, as a stable discriminator. Ordered slowest to fastest in the LsL
@@ -74,46 +74,42 @@ export function balanced_durations(
 
 	let start = 0;
 	while (start < plan.length) {
-		// A pause or a static trial occupies a plan slot but carries no walking; give it a
-		// placeholder so the result stays index aligned without drawing from or perturbing the
-		// balanced carry.
-		switch (plan[start].block.kind) {
-			case "static_stimulus":
-			case "pause":
-			case "eyes_open": {
-				durations.push({ kind: "none", time: 0 });
-				start += 1;
-				continue;
-			}
-			default: {
-				// The plan lists a block's trials consecutively.
-				let end = start;
-				while (end < plan.length && plan[end].block_nr === plan[start].block_nr) {
-					end++;
-				}
-				const trials = end - start;
-
-				const conditions = speed_conditions(length, speed, plan[start].block.settings.speeds);
-				const cycle = conditions.map((condition) => condition.kind).join();
-				let carry = carries.get(cycle) ?? [];
-
-				const block: Duration[] = [];
-				const complete = Math.floor(trials / conditions.length);
-				for (let copy = 0; copy < complete; copy++) {
-					block.push(...conditions);
-				}
-				while (block.length < trials) {
-					if (carry.length === 0) {
-						carry = shuffle([...conditions]);
-					}
-					block.push(carry.pop()!);
-				}
-				carries.set(cycle, carry);
-
-				durations.push(...shuffle(block));
-				start = end;
-			}
+		// A pause, an EEG recording or a static trial occupies a plan slot but carries no walking;
+		// give it a placeholder so the result stays index aligned without drawing from or
+		// perturbing the balanced carry.
+		const first = plan[start].block;
+		if (!is_trial_block(first) || first.kind === "static_stimulus") {
+			durations.push({ kind: "none", time: 0 });
+			start += 1;
+			continue;
 		}
+
+		// The plan lists a block's trials consecutively.
+		let end = start;
+		while (end < plan.length && plan[end].block_nr === plan[start].block_nr) {
+			end++;
+		}
+		const trials = end - start;
+
+		const conditions = speed_conditions(length, speed, first.settings.speeds);
+		const cycle = conditions.map((condition) => condition.kind).join();
+		let carry = carries.get(cycle) ?? [];
+
+		const block: Duration[] = [];
+		const complete = Math.floor(trials / conditions.length);
+		for (let copy = 0; copy < complete; copy++) {
+			block.push(...conditions);
+		}
+		while (block.length < trials) {
+			if (carry.length === 0) {
+				carry = shuffle([...conditions]);
+			}
+			block.push(carry.pop()!);
+		}
+		carries.set(cycle, carry);
+
+		durations.push(...shuffle(block));
+		start = end;
 	}
 
 	return durations;

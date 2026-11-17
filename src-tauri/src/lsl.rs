@@ -43,7 +43,10 @@ pub enum LsLMarker {
         event: CalibrationEvent,
     },
     Neutral(NeutralTrial),
-    EyesOpen(EegTrial),
+    // A resting state EEG recording, with the eyes on a fixation cross or closed. A block is one
+    // recording, so it has neither trials nor walking.
+    EyesOpen(EegRecording),
+    EyesClosed(EegRecording),
     Stimulus(StimulusTrial),
     // A stimulus trial without the walking: it skips `Go` and its speed is always `None`. It has
     // its own tag so a recording can tell it from a walked trial without looking for the gap.
@@ -91,9 +94,9 @@ pub struct NeutralTrial {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct EegTrial {
+pub struct EegRecording {
+    // 1 based index of the block inside the plan.
     block: u8,
-    trial: u8,
     #[serde(flatten)]
     event: EegEvent,
 }
@@ -110,11 +113,14 @@ pub enum StimulusEvent {
     RatingArousal { rating: u8 },
 }
 
+// The moments of an EEG recording: the instruction screen, the recording itself, which carries
+// its configured length in seconds, and the moment that length is over.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(tag = "state", rename_all = "snake_case")]
 pub enum EegEvent {
-    Baseline,
-    Go { duration: u32 },
+    Instruction,
+    Start { duration_s: f64 },
+    End,
 }
 
 // The phases of a neutral trial, the same moments as a stimulus trial minus the ratings.
@@ -200,6 +206,10 @@ pub enum BlockType {
     // `rename_all` above would run the words together, the wire name has to match the marker tag.
     #[serde(rename = "static_stimulus")]
     StaticStimulus = 6,
+    #[serde(rename = "eyes_open")]
+    EyesOpen = 7,
+    #[serde(rename = "eyes_closed")]
+    EyesClosed = 8,
 }
 
 impl LsL {
@@ -426,6 +436,27 @@ mod tests {
         );
     }
 
+    /// An EEG recording is a whole block, only its start carries the configured length.
+    #[test]
+    fn eeg_recording_markers() {
+        for kind in ["eyes_open", "eyes_closed"] {
+            for marker in [
+                json!({ "type": kind, "block": 1, "state": "instruction" }),
+                json!({ "type": kind, "block": 1, "state": "start", "duration_s": 60.5 }),
+                json!({ "type": kind, "block": 1, "state": "end" }),
+            ] {
+                publishes(marker.clone(), marker);
+            }
+        }
+    }
+
+    /// The start of a recording without its length could not be cut out of the EEG.
+    #[test]
+    fn an_eeg_start_needs_its_duration() {
+        let marker = json!({ "type": "eyes_closed", "block": 1, "state": "start" });
+        assert!(serde_json::from_value::<LsLMarker>(marker).is_err());
+    }
+
     /// A rating may only appear on a rating phase, and a neutral trial has none at all.
     #[test]
     fn a_neutral_trial_cannot_be_rated() {
@@ -487,6 +518,8 @@ mod tests {
             (BlockType::Test, "test"),
             (BlockType::Session, "session"),
             (BlockType::StaticStimulus, "static_stimulus"),
+            (BlockType::EyesOpen, "eyes_open"),
+            (BlockType::EyesClosed, "eyes_closed"),
         ] {
             let json = format!("\"{name}\"");
             assert_eq!(serde_json::to_string(&block_type).unwrap(), json);

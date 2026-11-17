@@ -13,6 +13,14 @@
 	"pause": {
 		"continue": "Pause zwischen den Blöcken. Enter drücken um fortzufahren."
 	},
+	"eeg": {
+		"eyes_open": {
+			"instruction": "Bitte lassen Sie die Augen geöffnet und schauen Sie auf das Kreuz, bis sich der Bildschirm ändert. Versuchen Sie sich zu entspannen und sich möglichst wenig zu bewegen."
+		},
+		"eyes_closed": {
+			"instruction": "Bitte schließen Sie die Augen, sobald die Aufnahme beginnt, und halten Sie sie geschlossen, bis Sie einen Ton hören. Versuchen Sie sich zu entspannen und sich möglichst wenig zu bewegen."
+		}
+	},
 	"deck": {
 		"enter": "Enter",
 		"valence": {

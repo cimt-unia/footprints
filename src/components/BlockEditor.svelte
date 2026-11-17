@@ -1,6 +1,8 @@
 <script lang="ts">
 	import {
 		Blocks,
+		is_eeg,
+		is_trial_block,
 		next_block_settings,
 		shows_image,
 		total_trials,
@@ -41,20 +43,27 @@
 		Blocks.current = Blocks.current.filter((_, j) => j !== i);
 	}
 
+	// A resting state recording usually runs for a few minutes, a minute is a short default.
+	const DEFAULT_EEG_DURATION_S = 60;
+
 	// `kind` discriminates the block's shape, so switching kind rebuilds the object. The trials
-	// count and the settings are carried over between the trial kinds so toggling between them
-	// does not reset them.
+	// count and the settings are carried over between the trial kinds, and the duration between
+	// the EEG kinds, so toggling between them does not reset them.
 	function set_kind(i: number, kind: BlockKind) {
 		const cur = Blocks.current[i];
-		const trials = cur.kind === "pause" || cur.kind === "eyes_open" ? 10 : cur.trials;
-		const settings =
-			cur.kind === "pause"
-				|| cur.kind === "eyes_open"
-				? next_block_settings(Blocks.current)
-				: cur.settings;
-		const next: Block =
-			kind === "pause" ? { kind } : kind === "eyes_open" ? { kind, duration_s: 5} : { kind, trials, settings };
-		if (kind === "pause" && expanded === i) {
+		let next: Block;
+		if (kind === "pause") {
+			next = { kind };
+		} else if (is_eeg(kind)) {
+			const duration_s = "duration_s" in cur ? cur.duration_s : DEFAULT_EEG_DURATION_S;
+			next = { kind, duration_s };
+		} else if (is_trial_block(cur)) {
+			next = { kind, trials: cur.trials, settings: cur.settings };
+		} else {
+			next = { kind, trials: 10, settings: next_block_settings(Blocks.current) };
+		}
+		// Only trial blocks have a settings panel.
+		if (!is_trial_block(next) && expanded === i) {
 			expanded = null;
 		}
 		Blocks.current = Blocks.current.map((b, j) => (j === i ? next : b));
@@ -125,8 +134,9 @@
 	<p class="text-sm opacity-75">
 		A <b>stimulus</b> block shows an emotional image on every trial, a
 		<b>static stimulus</b> block does the same without any walking, a
-		<b>neutral</b> block shows a fixation cross in the image's place, and a
-		<b>pause</b> is a break between blocks. Drag the handle to reorder, the
+		<b>neutral</b> block shows a fixation cross in the image's place, an
+		<b>eyes open</b> or <b>eyes closed</b> block is a single resting state EEG
+		recording, and a <b>pause</b> is a break between blocks. Drag the handle to reorder, the
 		sliders open a block's own settings.
 	</p>
 
@@ -152,7 +162,7 @@
 					<span class="w-16 font-bold opacity-70">#{i + 1}</span>
 
 					<select
-						class="select w-32"
+						class="select w-44"
 						value={block.kind}
 						onchange={(e) =>
 							set_kind(i, e.currentTarget.value as BlockKind)}
@@ -160,11 +170,12 @@
 						<option value="stimulus">Stimulus</option>
 						<option value="static_stimulus">Static Stimulus</option>
 						<option value="neutral">Neutral</option>
-						<option value="eyes_open">Eyes Open Eeg</option>
+						<option value="eyes_open">Eyes open (EEG)</option>
+						<option value="eyes_closed">Eyes closed (EEG)</option>
 						<option value="pause">Pause</option>
 					</select>
 
-					{#if block.kind !== "pause" && block.kind !== "eyes_open"}
+					{#if is_trial_block(block)}
 						<input
 							type="number"
 							class="input w-24"
@@ -175,14 +186,23 @@
 							bind:value={block.trials}
 						/>
 						<span class="whitespace-nowrap opacity-75">trials</span>
-					{:else if block.kind === "eyes_open"}
-						<span class="whitespace-nowrap opacity-75">one trial</span>
+					{:else if block.kind !== "pause"}
+						<input
+							type="number"
+							class="input w-24"
+							placeholder="Duration"
+							min="1"
+							step="any"
+							required
+							bind:value={block.duration_s}
+						/>
+						<span class="whitespace-nowrap opacity-75">s recording</span>
 					{:else}
 						<span class="italic opacity-60">break</span>
 					{/if}
 
 					<div class="ml-auto flex items-center gap-1">
-						{#if block.kind !== "pause"}
+						{#if is_trial_block(block)}
 							<button
 								type="button"
 								class="btn-icon btn-icon-sm"
@@ -205,23 +225,10 @@
 					</div>
 				</div>
 
-				{#if block.kind !== "pause" && expanded === i}
+				{#if is_trial_block(block) && expanded === i}
 					<div
 						class="mt-3 grid grid-cols-1 gap-4 border-t border-surface-500/30 pt-3 sm:grid-cols-2"
 					>
-						{#if block.kind === "eyes_open"}
-							<label class="flex items-center space-x-2">
-								<input
-									type="number"
-									class="input w-24"
-									placeholder="Duration (s)"
-									min="0"
-									step="any"
-									bind:value={block.duration_s}
-								/>
-								<p>Duration (s)</p>
-							</label>
-						{:else}
 						{#if shows_image(block.kind)}
 							<div class="space-y-1">
 								<span class="label-text">Rating categories</span>
@@ -260,7 +267,6 @@
 						{/if}
 						{@render timing("Baseline", block.settings.baseline)}
 						{@render timing("Stimulus", block.settings.stimulus)}
-{/if}
 					</div>
 				{/if}
 			</li>
