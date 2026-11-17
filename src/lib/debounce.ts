@@ -14,6 +14,16 @@ export const baseline_debounce = (sm: ExperimentMachine, delay: number) => {
 	)();
 }
 
+export const eeg_debounce = (sm: ExperimentMachine, delay: number) => {
+	console.log(delay);
+	useDebounce(
+		() => {
+			sm.send("eeg_fin");
+		},
+		() => delay
+	)();
+}
+
 export const stimulus_debounce = (sm: ExperimentMachine, delay: number) => {
 	console.log(delay);
 	useDebounce(

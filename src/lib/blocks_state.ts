@@ -2,7 +2,7 @@ import { PersistedState } from "runed";
 import type { TimeMod } from "./jitter.js";
 import { NumIterations } from "./num_iter_state.js";
 
-export type BlockKind = "stimulus" | "neutral" | "pause" | "static_stimulus";
+export type BlockKind = "stimulus" | "neutral" | "pause" | "static_stimulus" | "eyes_open";
 
 /**
  * One block of the experiment, modelled as a tagged union on `kind` so each kind can carry
@@ -18,7 +18,8 @@ export type BlockKind = "stimulus" | "neutral" | "pause" | "static_stimulus";
  * the other numeric settings use this shape, see `jitter.ts`.
  */
 export type Block =
-	| { kind: Exclude<BlockKind, "pause">; trials: number | ""; settings: TrialSettings }
+	| { kind: Exclude<BlockKind, "pause" | "eyes_open">; trials: number | ""; settings: TrialSettings }
+	| { kind: "eyes_open", duration_s: number }
 	| { kind: "pause" };
 
 /** Which of the two rating scales a block asks for. */
@@ -56,10 +57,9 @@ export interface TrialSettings {
  * holds the defaults as a placeholder.
  */
 export interface PlannedTrial {
-	block: number;
+	block_nr: number;
 	trial_in_block: number;
-	kind: BlockKind;
-	settings: TrialSettings;
+	block: Block;
 }
 
 export function default_trial_settings(): TrialSettings {
@@ -115,9 +115,9 @@ export const Blocks = new PersistedState<Block[]>("blocks", [
 
 // A block stored before settings moved here has none. `PersistedState` hands it back as it is, so
 // it is filled in once from the old global values and an existing setup keeps running the same.
-if (Blocks.current.some((block) => block.kind !== "pause" && !block.settings)) {
+if (Blocks.current.some((block) => block.kind !== "pause" && block.kind !== "eyes_open" && !block.settings)) {
 	Blocks.current = Blocks.current.map((block) =>
-		block.kind === "pause" || block.settings ? block : { ...block, settings: legacy_settings() }
+		block.kind === "pause" || block.kind === "eyes_open" || block.settings ? block : { ...block, settings: legacy_settings() }
 	);
 }
 
@@ -126,14 +126,14 @@ if (Blocks.current.some((block) => block.kind !== "pause" && !block.settings)) {
  * usually differ in one or two values at most.
  */
 export function next_block_settings(blocks: Block[]): TrialSettings {
-	const last = blocks.findLast((block) => block.kind !== "pause");
+	const last = blocks.findLast((block) => block.kind !== "pause" && block.kind !== "eyes_open");
 	return last ? copy_settings(last.settings) : default_trial_settings();
 }
 
 /** The scales at least one block asks for, which decides what the instructions have to explain. */
 export function rated_scales(blocks: Block[]): RatingScales {
 	const rated = (scale: keyof RatingScales) =>
-		blocks.some((block) => block.kind !== "pause" && shows_image(block.kind) && block.settings.rating[scale]);
+		blocks.some((block) => block.kind !== "pause" && block.kind !== "eyes_open" && shows_image(block.kind) && block.settings.rating[scale]);
 	return { valence: rated("valence"), arousal: rated("arousal") };
 }
 
@@ -142,7 +142,7 @@ export function rated_scales(blocks: Block[]): RatingScales {
  * uses. Speeds and timing come from the first walked block, or the first block with trials.
  */
 export function test_block(blocks: Block[]): Block {
-	const trial_blocks = blocks.filter((block) => block.kind !== "pause");
+	const trial_blocks = blocks.filter((block) => block.kind !== "pause" && block.kind !== "eyes_open");
 	const source = trial_blocks.find((block) => block.kind === "stimulus") ?? trial_blocks[0];
 	const settings = source ? copy_settings(source.settings) : default_trial_settings();
 	return { kind: "stimulus", trials: 3, settings: { ...settings, rating: rated_scales(blocks) } };
@@ -151,6 +151,9 @@ export function test_block(blocks: Block[]): Block {
 export function block_trials(block: Block): number {
 	if (block.kind === "pause") {
 		return 0;
+	}
+	if (block.kind === "eyes_open") {
+		return 1;
 	}
 	return Math.max(0, Math.floor(Number(block.trials) || 0));
 }
@@ -169,13 +172,16 @@ export function build_trial_plan(blocks: Block[]): PlannedTrial[] {
 	const plan: PlannedTrial[] = [];
 	blocks.forEach((block, i) => {
 		if (block.kind === "pause") {
-			plan.push({ block: i, trial_in_block: 0, kind: "pause", settings: default_trial_settings() });
+			plan.push({ block_nr: i, trial_in_block: 0, block });
 			return;
 		}
-		const settings = copy_settings(block.settings);
+		if (block.kind === "eyes_open") {
+			plan.push({ block_nr: i, trial_in_block: 0, block });
+			return;
+		}
 		const trials = block_trials(block);
 		for (let trial = 0; trial < trials; trial++) {
-			plan.push({ block: i, trial_in_block: trial, kind: block.kind, settings });
+			plan.push({ block_nr: i, trial_in_block: trial, block });
 		}
 	});
 	return plan;

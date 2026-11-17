@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { PlannedTrial } from "./blocks_state.js";
+import { type BlockKind, type PlannedTrial } from "./blocks_state.js";
 import type { SpeedKind } from "./durations.js";
 import type { InstructionSet } from "./instructions.js";
 
@@ -7,7 +7,7 @@ import type { InstructionSet } from "./instructions.js";
  * Which kind of run a trial marker belongs to. A test run draws from the same plan as a real
  * one, the tag is what keeps its markers out of the recorded data.
  */
-export type MarkerRunKind = "stimulus" | "test";
+export type MarkerRunKind = BlockKind | "test";
 
 /** The phases every trial passes through, whether or not it shows an image. */
 export type TrialPhase = "baseline" | "stimulus" | "go" | "rating_prompt";
@@ -42,7 +42,8 @@ export type LsLMarker =
 	| { type: "pause", block: number }
 	| { type: "calibration", step: number } & CalibrationEvent
 	| { type: "neutral" } & TrialMarker & { state: TrialPhase }
-	| { type: MarkerRunKind | "static_stimulus", image_id?: number } & TrialMarker & StimulusEvent;
+	| { type: "eyes_open", duration: number } & TrialMarker & { state: TrialPhase }
+	| { type: MarkerRunKind, image_id?: number } & TrialMarker & StimulusEvent;
 
 /** Which instruction pages a session showed, see `InstructionsShown` in `lsl.rs`. */
 export interface InstructionsShown {
@@ -66,33 +67,37 @@ export interface MarkerDetails {
 }
 
 /** The tag of a trial that shows an image, which only a run override can change. */
-function image_trial_type(trial: PlannedTrial, details: MarkerDetails): MarkerRunKind | "static_stimulus" {
+function trial_type(trial: PlannedTrial, details: MarkerDetails): MarkerRunKind {
 	if (details.type) {
 		return details.type;
 	}
-	return trial.kind === "static_stimulus" ? "static_stimulus" : "stimulus";
+	return trial.block.kind;
 }
 
 /** A marker for one trial of the plan, for the phases that carry no data. */
 export function eventFromTrial(trial: PlannedTrial, phase: TrialPhase, details: MarkerDetails = {}): LsLMarker {
-	if (trial.kind === "pause") {
+	if (trial.block.kind === "pause") {
 		return pauseMarker(trial);
 	}
 
 	const common = {
-		block: trial.block + 1,
+		block: trial.block_nr + 1,
 		trial: trial.trial_in_block + 1,
 		speed: details.speed ?? "none",
 		state: phase
 	} satisfies TrialMarker & { state: TrialPhase };
 
+	let type = trial_type(trial, details);
+
 	// A neutral trial shows a fixation cross, it has no image and is never rated.
-	if (trial.kind === "neutral") {
-		return { type: "neutral", ...common };
+	if (trial.block.kind === "neutral") {
+		return { type, ...common };
+	} else if (trial.block.kind === "eyes_open") {
+		return { type, duration: trial.block.duration_s, ...common };
 	}
 
 	return {
-		type: image_trial_type(trial, details),
+		type,
 		image_id: details.image_id,
 		...common
 	}
@@ -108,8 +113,8 @@ export function ratingMarker(
 	details: MarkerDetails = {}
 ): LsLMarker {
 	return {
-		type: image_trial_type(trial, details),
-		block: trial.block + 1,
+		type: trial_type(trial, details),
+		block: trial.block_nr + 1,
 		trial: trial.trial_in_block + 1,
 		speed: details.speed ?? "none",
 		image_id: details.image_id,
@@ -119,7 +124,7 @@ export function ratingMarker(
 
 /** A break between blocks. It has no phases, no walking and nothing to rate. */
 export function pauseMarker(trial: PlannedTrial): LsLMarker {
-	return { type: "pause", block: trial.block + 1 }
+	return { type: "pause", block: trial.block_nr + 1 }
 }
 
 /**

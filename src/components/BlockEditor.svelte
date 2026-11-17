@@ -46,13 +46,14 @@
 	// does not reset them.
 	function set_kind(i: number, kind: BlockKind) {
 		const cur = Blocks.current[i];
-		const trials = cur.kind === "pause" ? 10 : cur.trials;
+		const trials = cur.kind === "pause" || cur.kind === "eyes_open" ? 10 : cur.trials;
 		const settings =
 			cur.kind === "pause"
+				|| cur.kind === "eyes_open"
 				? next_block_settings(Blocks.current)
 				: cur.settings;
 		const next: Block =
-			kind === "pause" ? { kind } : { kind, trials, settings };
+			kind === "pause" ? { kind } : kind === "eyes_open" ? { kind, duration_s: 5} : { kind, trials, settings };
 		if (kind === "pause" && expanded === i) {
 			expanded = null;
 		}
@@ -159,10 +160,11 @@
 						<option value="stimulus">Stimulus</option>
 						<option value="static_stimulus">Static Stimulus</option>
 						<option value="neutral">Neutral</option>
+						<option value="eyes_open">Eyes Open Eeg</option>
 						<option value="pause">Pause</option>
 					</select>
 
-					{#if block.kind !== "pause"}
+					{#if block.kind !== "pause" && block.kind !== "eyes_open"}
 						<input
 							type="number"
 							class="input w-24"
@@ -173,6 +175,8 @@
 							bind:value={block.trials}
 						/>
 						<span class="whitespace-nowrap opacity-75">trials</span>
+					{:else if block.kind === "eyes_open"}
+						<span class="whitespace-nowrap opacity-75">one trial</span>
 					{:else}
 						<span class="italic opacity-60">break</span>
 					{/if}
@@ -205,6 +209,19 @@
 					<div
 						class="mt-3 grid grid-cols-1 gap-4 border-t border-surface-500/30 pt-3 sm:grid-cols-2"
 					>
+						{#if block.kind === "eyes_open"}
+							<label class="flex items-center space-x-2">
+								<input
+									type="number"
+									class="input w-24"
+									placeholder="Duration (s)"
+									min="0"
+									step="any"
+									bind:value={block.duration_s}
+								/>
+								<p>Duration (s)</p>
+							</label>
+						{:else}
 						{#if shows_image(block.kind)}
 							<div class="space-y-1">
 								<span class="label-text">Rating categories</span>
@@ -243,6 +260,7 @@
 						{/if}
 						{@render timing("Baseline", block.settings.baseline)}
 						{@render timing("Stimulus", block.settings.stimulus)}
+{/if}
 					</div>
 				{/if}
 			</li>

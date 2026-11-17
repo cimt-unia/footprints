@@ -5,7 +5,7 @@
 	const props: ExperimentStateProps = $props();
 
 	// The scales of this trial's block, it is settled for as long as this screen is up.
-	const { valence, arousal } = props.current_trial.settings.rating;
+	const { valence, arousal } = props.current_trial.block.settings.rating;
 
 	let valence_rating = $state(valence ? 4 : undefined);
 	let arousal_rating = $state(arousal ? 4 : undefined);

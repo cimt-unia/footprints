@@ -43,6 +43,7 @@ pub enum LsLMarker {
         event: CalibrationEvent,
     },
     Neutral(NeutralTrial),
+    EyesOpen(EegTrial),
     Stimulus(StimulusTrial),
     // A stimulus trial without the walking: it skips `Go` and its speed is always `None`. It has
     // its own tag so a recording can tell it from a walked trial without looking for the gap.
@@ -89,6 +90,14 @@ pub struct NeutralTrial {
     event: NeutralEvent,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct EegTrial {
+    block: u8,
+    trial: u8,
+    #[serde(flatten)]
+    event: EegEvent,
+}
+
 // The phases of a stimulus trial. The two rating phases carry the rating the subject gave.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(tag = "state", rename_all = "snake_case")]
@@ -99,6 +108,13 @@ pub enum StimulusEvent {
     RatingPrompt,
     RatingValence { rating: u8 },
     RatingArousal { rating: u8 },
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(tag = "state", rename_all = "snake_case")]
+pub enum EegEvent {
+    Baseline,
+    Go { duration: u32 },
 }
 
 // The phases of a neutral trial, the same moments as a stimulus trial minus the ratings.
@@ -251,10 +267,7 @@ mod tests {
     /// A session start belongs to no block and no trial, the tag is the whole marker.
     #[test]
     fn session_marker() {
-        publishes(
-            json!({ "type": "session" }),
-            json!({ "type": "session" }),
-        );
+        publishes(json!({ "type": "session" }), json!({ "type": "session" }));
     }
 
     /// A session records the instruction pages it showed.

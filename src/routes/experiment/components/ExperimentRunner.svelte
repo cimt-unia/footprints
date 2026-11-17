@@ -44,6 +44,8 @@
 		rating: Rating,
 		confirm: Confirm,
 		pause: Pause,
+		eyes_open_desc: Confirm,
+		eeg: Baseline,
 		// The run is over, both end states intentionally render nothing, see `create_state_machine`.
 		finished: undefined,
 		canceled: undefined,
