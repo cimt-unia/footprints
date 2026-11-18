@@ -212,16 +212,27 @@ pub enum BlockType {
     EyesClosed = 8,
 }
 
+/// The stream description, with the app that produced the recording under `desc/app`. The marker
+/// layout changes between releases, so a recording has to say which version wrote it.
+fn stream_info() -> Result<lsl::StreamInfo, lsl::Error> {
+    let mut info = lsl::StreamInfo::new(
+        "App Events",
+        "Markers",
+        1,
+        lsl::IRREGULAR_RATE,
+        lsl::ChannelFormat::String,
+        "",
+    )?;
+    info.desc()
+        .append_child("app")
+        .append_child_value("name", env!("CARGO_PKG_NAME"))
+        .append_child_value("version", env!("CARGO_PKG_VERSION"));
+    Ok(info)
+}
+
 impl LsL {
     fn new(rx: Receiver<String>) -> Result<Self, lsl::Error> {
-        let info = lsl::StreamInfo::new(
-            "App Events",
-            "Markers",
-            1,
-            lsl::IRREGULAR_RATE,
-            lsl::ChannelFormat::String,
-            "",
-        )?;
+        let info = stream_info()?;
 
         Ok(Self {
             recv: rx,
@@ -272,6 +283,15 @@ mod tests {
     fn publishes(sent: Value, published: Value) {
         let marker: LsLMarker = serde_json::from_value(sent).unwrap();
         assert_eq!(serde_json::to_value(&marker).unwrap(), published);
+    }
+
+    /// The stream names the app and the version that wrote it.
+    #[test]
+    fn stream_info_carries_app_version() {
+        let mut info = stream_info().unwrap();
+        let app = info.desc().child("app");
+        assert_eq!(app.child_value_named("name"), env!("CARGO_PKG_NAME"));
+        assert_eq!(app.child_value_named("version"), env!("CARGO_PKG_VERSION"));
     }
 
     /// A session start belongs to no block and no trial, the tag is the whole marker.
