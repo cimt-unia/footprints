@@ -327,11 +327,10 @@ export function create_state_machine(cancel_callback: () => void, plan: PlannedT
 			if (event === "instructed") {
 				begin_entry(0);
 			} else if (event === "test_finished") {
-				// A test run opened from the instructions draws from the same image pool and
-				// moves the shared trial counter. Put both back as soon as it closes, which
-				// leaves the prefetch time to settle before the real run starts.
+				// A test run opened from the instructions moves the shared trial counter, put it
+				// back as soon as it closes. Its images come from the test set, so the pool and
+				// the prefetched first trial are still intact.
 				ExperimentIteration.current = 0;
-				images.reset();
 			} else {
 				console.warn("No action defined for event", event, "in state", state);
 			}

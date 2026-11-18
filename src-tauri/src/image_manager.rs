@@ -10,6 +10,7 @@ use tauri::{path::BaseDirectory, AppHandle, Manager};
 pub struct ImageManager {
     dist: Alias<4>,
     images: Quadrants,
+    test_set: Vec<Image>,
     state: State,
 }
 
@@ -77,6 +78,7 @@ impl State {
 pub enum Magnitude {
     Low,
     High,
+    Test,
 }
 
 #[derive(Serialize, Clone)]
@@ -153,12 +155,31 @@ impl ImageManager {
 
         let dist = Alias::new(&[0.25; 4]);
         let state = State::new(&q);
+        let test_set = std::fs::read_dir(&path.join("test"))?
+            .into_iter()
+            .map(|entry| {
+                let entry = entry.unwrap();
+                let data = fs::read(entry.path()).unwrap();
+                Image {
+                    name: entry.file_name().to_string_lossy().into(),
+                    valence: Magnitude::Test,
+                    arousal: Magnitude::Test,
+                    data,
+                }
+            })
+            .collect();
 
         Ok(Self {
             dist,
             images: q,
+            test_set,
             state,
         })
+    }
+
+    pub fn get_test_image(&self) -> &Image {
+        let idx = rand::random_range(0..self.test_set.len());
+        &self.test_set[idx]
     }
 
     /// Refills every quadrant pool. Called once at the start of an experiment and never at a
@@ -185,4 +206,3 @@ impl ImageManager {
         (id, &i[index])
     }
 }
-

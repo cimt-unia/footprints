@@ -4,17 +4,29 @@ import { shows_image, type PlannedTrial } from "./blocks_state.js";
 /** The image as it comes back from the backend, with the webp bytes still raw. */
 interface RawImage {
 	name: string;
-	valence: "Low" | "High";
-	arousal: "Low" | "High";
+	valence: Magnitude;
+	arousal: Magnitude;
 	data: number[];
 }
 
+/** `Test` marks an image from the test set, which has no valence or arousal class. */
+export type Magnitude = "Low" | "High" | "Test";
+
+/**
+ * Where the images come from. A test run shows images from the separate test set, so the
+ * subject never sees a stimulus of the actual dataset before the experiment.
+ */
+export type ImageSource = "experiment" | "test";
+
 export interface TrialImage {
-	/** Backend identifier, quadrant in the upper 2 bits. Also goes into the LsL marker. */
-	id: number;
+	/**
+	 * Backend identifier, quadrant in the upper 2 bits. Also goes into the LsL marker.
+	 * Test images have none.
+	 */
+	id?: number;
 	name: string;
-	valence: "Low" | "High";
-	arousal: "Low" | "High";
+	valence: Magnitude;
+	arousal: Magnitude;
 	url: string;
 }
 
@@ -29,15 +41,21 @@ export interface TrialImage {
  */
 export class TrialImages {
 	#plan: PlannedTrial[];
+	#source: ImageSource;
 	#current = $state<TrialImage | undefined>(undefined);
 	#pending: Promise<TrialImage | undefined> | undefined;
 	#pending_for = -1;
 	/** The pool reset, every fetch waits for it so the first trial cannot outrun it. */
 	#ready: Promise<unknown>;
 
-	constructor(plan: PlannedTrial[]) {
+	/**
+	 * @param source `test` draws from the test set, which is sampled with replacement and
+	 * leaves the experiment's pool untouched, so it is not reset either.
+	 */
+	constructor(plan: PlannedTrial[], source: ImageSource = "experiment") {
 		this.#plan = plan;
-		this.#ready = invoke("reset_images");
+		this.#source = source;
+		this.#ready = source === "experiment" ? invoke("reset_images") : Promise.resolve();
 	}
 
 	/** The image of the trial on screen, `undefined` on trials that show no stimulus. */
@@ -81,16 +99,6 @@ export class TrialImages {
 		this.#current = next;
 	}
 
-	/**
-	 * Refills the backend pool and re-warms the first trial, discarding whatever is held.
-	 * Used after a test run, which draws from the same pool as the experiment around it.
-	 */
-	reset(): void {
-		this.release();
-		this.#ready = invoke("reset_images");
-		this.prefetch(0);
-	}
-
 	/** Drops the image on screen and any prefetch still in flight. */
 	release(): void {
 		revoke(this.#current);
@@ -109,7 +117,13 @@ export class TrialImages {
 			return undefined;
 		}
 		await this.#ready;
-		const [id, img] = await invoke<[number, RawImage]>("get_image");
+		let id: number | undefined;
+		let img: RawImage;
+		if (this.#source === "test") {
+			img = await invoke<RawImage>("get_test_image");
+		} else {
+			[id, img] = await invoke<[number, RawImage]>("get_image");
+		}
 		const blob = new Blob([new Uint8Array(img.data).buffer], { type: "image/webp" });
 		return {
 			id,
