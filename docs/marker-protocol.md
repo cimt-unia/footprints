@@ -8,6 +8,18 @@ The app publishes one marker per experiment event on the LsL stream
 | type | `Markers` |
 | channels | 1, `string`, irregular rate |
 
+The stream description names the app that produced it, so a recording says which version of
+the marker protocol it holds:
+
+```xml
+<desc>
+  <app>
+    <name>footprint</name>
+    <version>0.4.1</version>
+  </app>
+</desc>
+```
+
 Each sample is a single JSON object. The `type` field says which type of event the marker describes
 and therefore which fields the object has; inside a block, `state` says which moment of it. A
 field that does not apply to a marker is absent.
@@ -129,6 +141,8 @@ from pylsl import StreamInlet, resolve_byprop
 import json
 
 inlet = StreamInlet(resolve_byprop("name", "App Events")[0])
+app = inlet.info().desc().child("app")
+print(app.child_value("name"), app.child_value("version"))
 while True:
     sample, timestamp = inlet.pull_sample()
     marker = json.loads(sample[0])
