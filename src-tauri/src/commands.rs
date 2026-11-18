@@ -15,6 +15,13 @@ pub fn get_image(state: State<'_, Mutex<ImageManager>>) -> (u16, Image) {
 }
 
 #[tauri::command]
+pub fn get_test_image(state: State<'_, Mutex<ImageManager>>) -> Image {
+    let i = state.lock().unwrap();
+    let img = i.get_test_image();
+    img.clone()
+}
+
+#[tauri::command]
 pub fn reset_images(state: State<'_, Mutex<ImageManager>>) {
     state.lock().unwrap().reset();
 }

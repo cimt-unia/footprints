@@ -4,7 +4,7 @@ version = "0.4.2"
 description = "A Tauri App"
 authors = ["korbinian flietel", "laura gottschling"]
 edition = "2021"
-rust-version = "1.82.0"
+rust-version = "1.90"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

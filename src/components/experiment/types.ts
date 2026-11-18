@@ -3,6 +3,7 @@ import type { Duration } from "$lib/durations.js";
 import type { MarkerRunKind } from "$lib/lsl.js";
 import type { InstructionSet } from "$lib/instructions.js";
 import type { ExperimentMachine } from "$lib/state_machine.svelte.js";
+import type { Magnitude } from "$lib/trial_images.svelte.js";
 
 export interface ExperimentStateProps {
 	/** The trial's walking condition. `kind` is what goes into the LsL marker, not `name`. */
@@ -11,8 +12,8 @@ export interface ExperimentStateProps {
 	current_trial: PlannedTrial;
 	/** Overrides the trial's own kind on markers a screen publishes itself, see `eventFromTrial`. */
 	marker_type?: MarkerRunKind;
-	img_valence?: "Low" | "High";
-	img_arousal?: "Low" | "High";
+	img_valence?: Magnitude;
+	img_arousal?: Magnitude;
 	img_name?: string;
 	img_url?: string;
 	img_id?: number;

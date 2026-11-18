@@ -31,8 +31,9 @@
 	// looks like. It only takes its settings from there.
 	const plan = build_trial_plan([test_block(Blocks.current)]);
 
-	// Owns the stimulus image of the running trial and resets the pool on construction.
-	const images = new TrialImages(plan);
+	// Owns the stimulus image of the running trial. A test run only shows images from the
+	// test set, never a stimulus of the actual dataset.
+	const images = new TrialImages(plan, "test");
 
 	const StateMap = {
 		// A test run is started from inside the instructions, it never shows them itself.

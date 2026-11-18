@@ -7,7 +7,9 @@ mod lsl;
 mod rand;
 
 use anyhow::{Context, Result};
-use commands::{get_image, open_calibration, play_sound, publish_lsl, reset_images};
+use commands::{
+    get_image, get_test_image, open_calibration, play_sound, publish_lsl, reset_images,
+};
 use deck::{set_deck_state, Deck};
 use image_manager::ImageManager;
 use instructions::load_instructions;
@@ -17,12 +19,6 @@ use std::sync::Mutex;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager};
-
-struct ExperimentState {
-    // If this is true keyboard inputs get broadcasted to the runner, this enebles rating when the
-    // focus is not on the runner, i.e. when the experimenter made some comments.
-    broadcast: Mutex<bool>,
-}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<()> {
@@ -46,6 +42,7 @@ pub fn run() -> Result<()> {
     builder
         .invoke_handler(tauri::generate_handler![
             get_image,
+            get_test_image,
             reset_images,
             open_calibration,
             publish_lsl,
